@@ -1,0 +1,62 @@
+
+services:
+  python-backend:
+    build: ./python-app
+    environment:
+      - OTEL_SERVICE_NAME=python-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_PYTHON_LOG_CORRELATION=true
+    ports:
+      - 8000:8000
+    depends_on:
+      - otel-collector
+    networks:
+      - otel-network
+
+  grafana:
+    build:
+      context: ./grafana
+      dockerfile: Dockerfile
+    #image: ${GRAFANA_IMAGE}
+    container_name: grafana-adx
+    deploy:
+      resources:
+        limits:
+          memory: 120M
+    restart: unless-stopped
+    environment:
+      - "GF_INSTALL_PLUGINS=grafana-opensearch-datasource,grafana-azure-data-explorer-datasource"
+    volumes:
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    ports:
+      - 3000:3000
+    #logging: *logging
+
+  otel-collector:
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.116.1
+    container_name: otel-collector-adx
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+    restart: unless-stopped
+    command: [ "--config=/etc/otelcol-config.yml" ]
+    volumes:
+      - ./otelcol-config.yml:/etc/otelcol-config.yml 
+    #environment:
+    #  - ADX_CLUSTER_URL=https://<YOUR_ADX_CLUSTER>.<REGION>.kusto.windows.net
+    #  - ADX_DATABASE=<YOUR_ADX_DATABASE>
+    #  - AZURE_TENANT_ID=<YOUR_TENANT_ID>
+    #  - AZURE_CLIENT_ID=<YOUR_CLIENT_ID>
+    #  - AZURE_CLIENT_SECRET=<YOUR_CLIENT_SECRET>
+    ports:
+      - 4317:4317  # OTLP gRPC
+      - 4318:4318  # OTLP HTTP
+    networks:
+      - otel-network
+    
+
+networks:
+  otel-network:
+    driver: bridge
