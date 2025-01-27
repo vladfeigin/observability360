@@ -28,7 +28,7 @@ exporters:
   azuredataexplorer:
     cluster_uri: "https://observability-opentel.eastus2.kusto.windows.net/"
     application_id: "d7060107-48e1-49f6-bbe0-148bda208712"
-    application_key: "dik8Q~~zFhX-KJNCE5pKti4ZCCwh8yucPGDE4a-h"
+    application_key: "xxxx"
     tenant_id: "e51c7c11-0775-464d-8d4e-e390ff2166e8"
     db_name: "openteldb"
     metrics_table_name: "OTELMetrics"
