@@ -8,3 +8,10 @@ resource "azurerm_kusto_cluster" "demo" {
 	capacity = 1
   }
 }
+
+resource "azurerm_kusto_database" "otel" {
+  name                = "openteldb"
+  resource_group_name = azurerm_resource_group.demo.name
+  location            = var.region
+  cluster_name        = azurerm_kusto_cluster.demo.name
+}

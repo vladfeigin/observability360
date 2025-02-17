@@ -7,11 +7,11 @@ resource "docker_image" "grafana" {
   keep_locally = false
   
   build {
-    context = "${path.cwd}/grafana"
+    context = "${path.cwd}/../grafana"
   }
 
   triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "grafana/*") : filesha1(f)]))
+    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "../grafana/*") : filesha1(f)]))
   }
 }
 
@@ -20,9 +20,8 @@ resource "docker_registry_image" "grafana" {
   keep_remotely = true
 
   triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "grafana/*") : filesha1(f)]))
+    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "../grafana/*") : filesha1(f)]))
   } 
-  
 }
 
 resource "azurerm_linux_web_app" "grafana" {
@@ -30,9 +29,6 @@ resource "azurerm_linux_web_app" "grafana" {
   location            = var.region
   resource_group_name = azurerm_resource_group.demo.name
   service_plan_id     = azurerm_service_plan.demo.id
-
-  
-
 
   site_config {
     always_on = true

@@ -8,5 +8,9 @@ terraform {
       source  = "kreuzwerker/docker"
       version = "3.0.2"
     }
+    azuread = {
+      source = "hashicorp/azuread"
+      version = "3.1.0"
+    }
   }
 }

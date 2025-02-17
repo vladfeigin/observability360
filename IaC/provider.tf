@@ -10,3 +10,7 @@ provider "docker" {
     password = azurerm_container_registry.demo.admin_password
   }
 }
+
+provider "azuread" {
+  # Configuration options
+}
