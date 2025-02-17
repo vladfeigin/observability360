@@ -4,7 +4,7 @@ services:
     build: ./python-app
     environment:
       - OTEL_SERVICE_NAME=python-service
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector.yellowforest-0004ab29.swedencentral.azurecontainerapps.io:4318
       - OTEL_PYTHON_LOG_CORRELATION=true
     ports:
       - 8000:8000
