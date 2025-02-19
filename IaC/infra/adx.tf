@@ -4,8 +4,8 @@ resource "azurerm_kusto_cluster" "demo" {
   resource_group_name = azurerm_resource_group.demo.name
 
   sku {
-	name     = var.adx_sku
-	capacity = 1
+    name     = var.adx_sku
+    capacity = 1
   }
 }
 

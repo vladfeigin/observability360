@@ -3,5 +3,5 @@ resource "azurerm_container_registry" "demo" {
   location            = var.region
   resource_group_name = azurerm_resource_group.demo.name
   sku                 = "Basic"
-  admin_enabled = true
+  admin_enabled       = true
 }
