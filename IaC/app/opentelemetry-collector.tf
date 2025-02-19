@@ -95,4 +95,6 @@ resource "azurerm_container_group" "otel_collector" {
       protocol = "TCP"
     }
   }
+
+  depends_on = [ docker_registry_image.otel_collector ]
 }
