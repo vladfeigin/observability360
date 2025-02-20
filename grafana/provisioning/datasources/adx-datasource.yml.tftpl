@@ -1,0 +1,14 @@
+apiVersion: 1
+datasources:
+  - name: Azure Data Explorer
+    type: grafana-azure-data-explorer-datasource
+    access: proxy
+    url: ${adx_fqdn}
+    jsonData:
+      defaultDatabase: ${adx_database}
+      clientId: ${grafana_client_id}
+      tenantId: ${tenant_id}
+      clusterUrl: ${adx_fqdn}
+      dataConsistency: strongconsistency
+    secureJsonData:
+      clientSecret: ${grafana_client_secret}
