@@ -15,4 +15,4 @@ COPY --from=build /build/jaeger-kusto /go/bin/jaeger-kusto
 COPY --from=build /build/jaeger-kusto-config.json /config/jaeger-kusto-config.json
 COPY --from=build /build/jaeger-kusto-plugin-config.json /config/jaeger-kusto-plugin-config.json
 
-ENTRYPOINT [ "/go/bin/jaeger-kusto", "--config=/config/jaeger-kusto-plugin-config.json"  ]
+ENTRYPOINT [ "/go/bin/jaeger-kusto", "--config=/config/jaeger-kusto-plugin-config.json" ]
