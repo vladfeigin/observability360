@@ -1,12 +1,20 @@
+
+#start the service from the project root folder
+#python ./online_store/user/app.py
 import os
 import sqlite3
 from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
-DATABASE = os.path.join(os.getcwd(), 'users.db')
+DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
+print(f"DB=={DATABASE}")
 
 def init_db():
+    db_dir = os.path.dirname(DATABASE)
+    if not os.path.exists(db_dir):
+        raise Exception(f"Database directory {db_dir} does not exist. Try run the service from the project root folder.")
+        
     """Initialize the SQLite database and create the users table if it doesn't exist."""
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
@@ -155,4 +163,4 @@ def update_user():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
