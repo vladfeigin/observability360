@@ -2,3 +2,4 @@ flask
 gunicorn
 werkzeug
 streamlit
+python-dotenv
