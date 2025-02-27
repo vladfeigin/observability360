@@ -14,5 +14,5 @@ variable "region" {
 
 variable "adx_sku" {
   description = "Value of the sku for the Azure Data Explorer cluster."
-  default     = "Standard_E2ads_v5"
+  default     = "Standard_E2d_v4"
 }
