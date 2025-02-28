@@ -12,7 +12,7 @@ def run_product_ui():
 
     action = st.selectbox(
         "Select Action",
-        ["Select Action...", "Add Product", "List Products"],
+        ["Select Action...", "List Products", "Add Product"],
         index=0
     )
 
