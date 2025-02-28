@@ -36,7 +36,7 @@ def run_user_ui():
                     st.error("Error adding user: " + response.text)
 
     elif action == "User List":
-        if st.button("Refresh User List"):
+        #if st.button("Refresh User List"):
             response = requests.get(f"{BASE_URL}/users")
             if response.status_code == 200:
                 users = response.json()
