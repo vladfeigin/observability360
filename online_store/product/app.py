@@ -129,6 +129,45 @@ def remove_product_from_stock():
 
     return jsonify({'message': f'Successfully removed {required_qty} items from {product_name}. New stock is {new_stock}.'}), 200
 
+@app.route('/products/add_stock', methods=['POST'])
+def add_product_to_stock():
+    """
+    AddProductToStock API.
+    Expects a JSON payload with: productName and added_qty.
+    Increases the number_items_in_stock for the given product by added_qty.
+    """
+    data = request.get_json()
+    product_name = data.get('productName')
+    added_qty = data.get('added_qty')
+
+    if not product_name or added_qty is None:
+        return jsonify({'error': 'Missing required fields: productName and added_qty'}), 400
+
+    try:
+        added_qty = int(added_qty)
+        if added_qty <= 0:
+            raise ValueError()
+    except ValueError:
+        return jsonify({'error': 'Invalid added_qty value'}), 400
+
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('SELECT number_items_in_stock FROM products WHERE name = ?', (product_name,))
+    row = cursor.fetchone()
+
+    if row is None:
+        conn.close()
+        return jsonify({'error': 'Product not found'}), 404
+
+    current_stock = row['number_items_in_stock']
+    new_stock = current_stock + added_qty
+    cursor.execute('UPDATE products SET number_items_in_stock = ? WHERE name = ?', (new_stock, product_name))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': f'Successfully added {added_qty} items to {product_name}. New stock is {new_stock}.'}), 200
+
 if __name__ == '__main__':
     init_db()  # Create the products table (and seed data if needed)
     app.run(debug=True, port=5001)
