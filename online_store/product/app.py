@@ -75,13 +75,18 @@ def add_product():
         return jsonify({'error': 'Missing required fields'}), 400
 
     conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (product_id, name, description, number_items_in_stock, price))
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO products (product_id, name, description, number_items_in_stock, price)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (product_id, name, description, number_items_in_stock, price))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': f'Failed to add product: {str(e)}'}), 500
+    finally:
+        conn.close()
 
     return jsonify({'message': 'Product added successfully'}), 201
 
@@ -115,7 +120,7 @@ def remove_product_from_stock():
 
     if row is None:
         conn.close()
-        return jsonify({'error': 'Product not found'}), 404
+        return jsonify({'error': f'Product: {product_name}  not found'}), 404
 
     current_stock = row['number_items_in_stock']
     if current_stock < required_qty:
