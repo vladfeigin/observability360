@@ -3,3 +3,4 @@ gunicorn
 werkzeug
 streamlit
 python-dotenv
+streamlit-aggrid

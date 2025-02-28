@@ -11,6 +11,7 @@ DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 print(f"DB=={DATABASE}")
 
 def init_db():
+    
     db_dir = os.path.dirname(DATABASE)
     if not os.path.exists(db_dir):
         raise Exception(f"Database directory {db_dir} does not exist. Try run the service from the project root folder.")

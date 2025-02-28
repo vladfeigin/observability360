@@ -11,6 +11,10 @@ def init_db():
     Initialize the SQLite database.
     Creates the 'products' table if it doesn't exist.
     """
+    db_dir = os.path.dirname(DATABASE)
+    if not os.path.exists(db_dir):
+        raise Exception(f"Database directory {db_dir} does not exist. Try run the service from the project root folder.")
+        
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute('''
@@ -80,6 +84,50 @@ def add_product():
     conn.close()
 
     return jsonify({'message': 'Product added successfully'}), 201
+
+@app.route('/products/remove_stock', methods=['POST'])
+def remove_product_from_stock():
+    """
+    RemoveProductFromStock API.
+    Expects a JSON payload with: productName and required_qty.
+    Decreases the number_items_in_stock for the given product by required_qty.
+    If the product is not found or does not have enough stock, returns an error.
+    """
+    data = request.get_json()
+    product_name = data.get('productName')
+    required_qty = data.get('required_qty')
+
+    if not product_name or required_qty is None:
+        return jsonify({'error': 'Missing required fields: productName and required_qty'}), 400
+
+    try:
+        required_qty = int(required_qty)
+        if required_qty <= 0:
+            raise ValueError()
+    except ValueError:
+        return jsonify({'error': 'Invalid required_qty value'}), 400
+
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('SELECT number_items_in_stock FROM products WHERE name = ?', (product_name,))
+    row = cursor.fetchone()
+
+    if row is None:
+        conn.close()
+        return jsonify({'error': 'Product not found'}), 404
+
+    current_stock = row['number_items_in_stock']
+    if current_stock < required_qty:
+        conn.close()
+        return jsonify({'error': 'The required quantity is not in stock'}), 400
+
+    new_stock = current_stock - required_qty
+    cursor.execute('UPDATE products SET number_items_in_stock = ? WHERE name = ?', (new_stock, product_name))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': f'Successfully removed {required_qty} items from {product_name}. New stock is {new_stock}.'}), 200
 
 if __name__ == '__main__':
     init_db()  # Create the products table (and seed data if needed)
