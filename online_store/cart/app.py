@@ -93,13 +93,18 @@ def add_cart_item():
 
     # Add the item to the cart after successful stock update by Product service
     conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO cart_items (user_id, product_id, product_name ,quantity)
-        VALUES (?, ?, ?, ?)
-    ''', (user_id, product_id, product_name ,quantity))
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO cart_items (user_id, product_id, product_name ,quantity)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, product_id, product_name ,quantity))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': f'Failed to add item to cart: {str(e)}'}), 500     
+    finally:
+        conn.close()
 
     return jsonify({'message': 'Cart item added successfully'}), 201
 
@@ -115,10 +120,15 @@ def update_cart_item(item_id):
         return jsonify({'error': 'Missing quantity field'}), 400
 
     conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('UPDATE cart_items SET quantity = ? WHERE id = ?', (quantity, item_id))
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE cart_items SET quantity = ? WHERE id = ?', (quantity, item_id))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': f'Failed to update cart item: {str(e)}'}), 500
+    finally:
+        conn.close()
 
     return jsonify({'message': 'Cart item updated successfully'}), 200
 

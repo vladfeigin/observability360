@@ -50,14 +50,19 @@ def add_user():
     hashed_password = generate_password_hash(password)
     
     conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO users (first_name, last_name, user_alias, password)
-        VALUES (?, ?, ?, ?)
-    ''', (first_name, last_name, user_alias, hashed_password))
-    conn.commit()
-    user_id = cursor.lastrowid
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO users (first_name, last_name, user_alias, password)
+            VALUES (?, ?, ?, ?)
+        ''', (first_name, last_name, user_alias, hashed_password))
+        conn.commit()
+        user_id = cursor.lastrowid
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:    
+        conn.close()
 
     return jsonify({
         'id': user_id,
@@ -103,16 +108,23 @@ def remove_user():
     
     if not all([first_name, last_name]):
         return jsonify({'error': 'Missing required fields'}), 400
-
+    
+    
     conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        DELETE FROM users 
-        WHERE first_name = ? AND last_name = ?
-    ''', (first_name, last_name))
-    conn.commit()
-    changes = conn.total_changes
-    conn.close()
+    changes = 0
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            DELETE FROM users 
+            WHERE first_name = ? AND last_name = ?
+        ''', (first_name, last_name))
+        conn.commit()
+        changes = conn.total_changes
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
     if changes == 0:
         return jsonify({'error': 'No user found with given firstName and lastName'}), 404
@@ -140,26 +152,30 @@ def update_user():
         return jsonify({'error': 'Missing required fields'}), 400
 
     conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    if password:
-        hashed_password = generate_password_hash(password)
-        cursor.execute('''
-            UPDATE users 
-            SET first_name = ?, last_name = ?, user_alias = ?, password = ?
-            WHERE id = ?
-        ''', (first_name, last_name, user_alias, hashed_password, user_id))
-    else:
-        cursor.execute('''
-            UPDATE users 
-            SET first_name = ?, last_name = ?, user_alias = ?
-            WHERE id = ?
-        ''', (first_name, last_name, user_alias, user_id))
-    conn.commit()
-    if cursor.rowcount == 0:
-        conn.close()
-        return jsonify({'error': 'User not found'}), 404
-    conn.close()
-
+    try:    
+        cursor = conn.cursor()
+        if password:
+            hashed_password = generate_password_hash(password)
+            cursor.execute('''
+                UPDATE users 
+                SET first_name = ?, last_name = ?, user_alias = ?, password = ?
+                WHERE id = ?
+            ''', (first_name, last_name, user_alias, hashed_password, user_id))
+        else:
+            cursor.execute('''
+                UPDATE users 
+                SET first_name = ?, last_name = ?, user_alias = ?
+                WHERE id = ?
+            ''', (first_name, last_name, user_alias, user_id))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+         if cursor.rowcount == 0:
+            return jsonify({'error': 'User not found'}), 404
+         conn.close()
+         
     return jsonify({'message': 'User updated successfully'}), 200
 
 if __name__ == '__main__':

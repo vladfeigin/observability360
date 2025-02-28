@@ -15,9 +15,12 @@ def run_cart_ui():
     action = st.selectbox("Select Action", [
         "Select Action...",
         "List Cart Items",
-        "Add Cart Item"
+        #"Add Cart Item" - there is a bug that cart list is persists in the page ...
     ], index=0)
 
+    # [ADDED] Create a container for the cart grid so we can later empty it.
+    #grid_container = st.container()
+    
     if action == "List Cart Items":
         st.subheader("List Cart Items")
         user_id_input = st.text_input("User ID", help="Provide a valid User ID")
@@ -51,7 +54,6 @@ def run_cart_ui():
             if cart_response.status_code != 200:
                 st.error("Error fetching cart items: " + cart_response.text)
                 return
-
             items = cart_response.json()
             st.markdown(f"### Cart Items for {user_detail['firstName']} {user_detail['lastName']}")
             if not items:
@@ -71,15 +73,13 @@ def run_cart_ui():
 
             # Save both DataFrames in session state for persistence.
             st.session_state["cart_df_full"] = df_full
-            # Also store a copy of the original display for later comparison.
             st.session_state["cart_df_display_original"] = df_display.copy()
 
     # Only show the editor if we have loaded cart data.
     if "cart_df_display_original" in st.session_state:
-        # Use the original display as the starting point.
         original_df_display = st.session_state["cart_df_display_original"]
 
-        # Show an inline editor that does not allow adding new rows.
+        # Show an inline editor.
         edited_df = st.data_editor(
             original_df_display,
             hide_index=True,
@@ -87,7 +87,7 @@ def run_cart_ui():
             key="cart_editor"
         )
 
-        # Warn if non-quantity fields are changed.
+        # Warn if user changes non-updatable fields.
         for idx, edited_row in edited_df.iterrows():
             original_row = original_df_display.iloc[idx]
             if edited_row["productId"] != original_row["productId"]:
@@ -98,7 +98,7 @@ def run_cart_ui():
         if st.button("Save Changes"):
             full_df = st.session_state["cart_df_full"]
             changes_done = False
-            # Loop through each row of the edited DataFrame.
+            # Process each row.
             for idx, edited_row in edited_df.iterrows():
                 try:
                     cart_item_id = full_df.iloc[idx]["id"]
@@ -106,28 +106,58 @@ def run_cart_ui():
                     st.error("Row index out of range. Please do not add new rows.")
                     continue
 
-                # If the Delete checkbox is checked, update product stock then delete the cart item.
+                # If Delete is checked, update product stock then delete the cart item.
                 if edited_row["Delete"]:
-                    # Prepare payload to add back stock.
                     payload_stock = {
                         "productName": edited_row["productName"],
                         "added_qty": edited_row["quantity"]
                     }
-                    r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/add_stock", json=payload_stock, timeout=60)
+                    r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/add_stock",
+                                            json=payload_stock, timeout=60)
                     if r_stock.status_code != 200:
                         error_msg = r_stock.json().get("error", r_stock.text)
                         st.error(f"Failed to add stock for product {edited_row['productName']}: {error_msg}")
-                        continue  # Skip deletion if stock update fails
+                        continue
                     r = requests.delete(f"{CART_SERVICE_URL}/cart/{cart_item_id}", timeout=60)
                     if r.status_code != 200:
                         st.error(f"Failed to delete cart item with ID {cart_item_id}")
                         break
                     changes_done = True
 
-                # Otherwise, if the quantity has changed, update the cart item.
+                # Otherwise, if the quantity has changed, update product stock accordingly.
                 elif edited_row["quantity"] != original_df_display.iloc[idx]["quantity"]:
-                    payload = {"quantity": edited_row["quantity"]}
-                    r = requests.put(f"{CART_SERVICE_URL}/cart/{cart_item_id}", json=payload, timeout=60)
+                    old_qty = original_df_display.iloc[idx]["quantity"]
+                    new_qty = edited_row["quantity"]
+                    diff = new_qty - old_qty
+
+                    # If new quantity is higher, we need to remove extra items from product stock.
+                    if diff > 0:
+                        payload_stock = {
+                            "productName": edited_row["productName"],
+                            "required_qty": int(diff)
+                        }
+                        r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/remove_stock",
+                                                json=payload_stock, timeout=60)
+                        if r_stock.status_code != 200:
+                            error_msg = r_stock.json().get("error", r_stock.text)
+                            st.error(f"Failed to remove {diff} items from product {edited_row['productName']}: {error_msg}")
+                            break
+                    # If new quantity is lower, add back the difference to product stock.
+                    elif diff < 0:
+                        payload_stock = {
+                            "productName": edited_row["productName"],
+                            "added_qty": int(-diff)
+                        }
+                        r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/add_stock",
+                                                json=payload_stock, timeout=60)
+                        if r_stock.status_code != 200:
+                            error_msg = r_stock.json().get("error", r_stock.text)
+                            st.error(f"Failed to add {-diff} items back to product {edited_row['productName']}: {error_msg}")
+                            break
+                    # Now update the cart item with the new quantity.
+                    payload = {"quantity": new_qty}
+                    r = requests.put(f"{CART_SERVICE_URL}/cart/{cart_item_id}",
+                                     json=payload, timeout=60)
                     if r.status_code != 200:
                         st.error(f"Failed to update cart item with ID {cart_item_id}")
                         break
@@ -142,13 +172,24 @@ def run_cart_ui():
             for key in list(st.session_state.keys()):
                 if key.startswith("cart_"):
                     del st.session_state[key]
+                    
+        if st.button("Clean Cart"):
+            for key in list(st.session_state.keys()):
+                if key.startswith("cart_"):
+                    del st.session_state[key]
+            #st.info("Cart grid cleared.")
 
     elif action == "Add Cart Item":
         st.subheader("Add Cart Item")
+        for key in list(st.session_state.keys()):
+                if key.startswith("cart_"):
+                    del st.session_state[key]
+                    
         with st.form("add_cart_item_form"):
             user_id = st.text_input("User ID")
             product_id = st.text_input("Product ID")
-            quantity = st.number_input("Quantity", min_value=1, step=1)
+            product_name = st.text_input("Product Name")
+            quantity = st.number_input("Quantity",min_value=0, step=1)
             submitted = st.form_submit_button("Add to Cart")
             if submitted:
                 if not user_id or not product_id:
@@ -157,14 +198,29 @@ def run_cart_ui():
                     payload = {
                         "userId": user_id,
                         "productId": product_id,
+                        "productName": product_name,
                         "quantity": quantity
                     }
                     try:
-                        response = requests.post(f"{CART_SERVICE_URL}/cart", json=payload)
+                        response = requests.post(f"{CART_SERVICE_URL}/cart", json=payload, timeout=60)
                         if response.status_code == 201:
-                            st.success("Cart item added successfully!")
+                            # If cart addition is successful, update the product stock by removing the quantity.
+                            payload_stock = {
+                                "productName": product_name,
+                                "required_qty": int(quantity)
+                            }
+                            r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/remove_stock",
+                                                    json=payload_stock, timeout=60)
+                            if r_stock.status_code != 200:
+                                error_msg = r_stock.json().get("error", r_stock.text)
+                                st.error(f"Error updating product stock: {error_msg}")
+                            else:
+                                st.success("Cart item added successfully and product stock updated!")
                         else:
-                            error_msg = response.json().get("error", response.text)
+                            try:
+                                error_msg = response.json().get("error", response.text)
+                            except Exception:
+                                error_msg = response.text
                             st.error(f"Error adding cart item: {error_msg}")
                     except Exception as e:
                         st.error(f"An error occurred: {str(e)}")
