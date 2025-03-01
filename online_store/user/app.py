@@ -5,8 +5,24 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from werkzeug.security import generate_password_hash
+import logging
+from online_store.otel.otel import configure_telemetry
+
+SERVICE_VERSION = "1.0.0"
 
 app = FastAPI()
+instruments = configure_telemetry(app, "user service", SERVICE_VERSION)
+
+# Get instruments
+meter = instruments["meter"]
+tracer = instruments["tracer"]
+# Create metrics instruments
+request_counter = meter.create_counter(
+    name="http_requests_total",
+    description="Total number of HTTP requests to the user service",
+    unit="1"
+)
+
 DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 print(f"DB=={DATABASE}")
 
@@ -51,75 +67,87 @@ def add_user(user: AddUserRequest):
     if not all([user.firstName, user.lastName, user.userAlias, user.password]):
         raise HTTPException(status_code=400, detail="Missing required fields")
     
+    request_counter.add(1, attributes={"route": "/users", "method": "POST" })
     hashed_password = generate_password_hash(user.password)
     
-    conn = sqlite3.connect(DATABASE)
-    try:
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO users (first_name, last_name, user_alias, password)
-            VALUES (?, ?, ?, ?)
-        ''', (user.firstName, user.lastName, user.userAlias, hashed_password))
-        conn.commit()
-        user_id = cursor.lastrowid
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:    
-        conn.close()
+    with tracer.start_as_current_span("add_user") as span:
+        span.set_attribute("user.first_name", user.firstName)
+        span.set_attribute("user.last_name", user.lastName)
+        span.set_attribute("user.user_alias", user.userAlias)
+        
+        conn = sqlite3.connect(DATABASE)
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO users (first_name, last_name, user_alias, password)
+                VALUES (?, ?, ?, ?)
+            ''', (user.firstName, user.lastName, user.userAlias, hashed_password))
+            conn.commit()
+            user_id = cursor.lastrowid
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:    
+            conn.close()
 
-    return JSONResponse(status_code=201, content={
-        'id': user_id,
-        'firstName': user.firstName,
-        'lastName': user.lastName,
-        'userAlias': user.userAlias
-    })
+        return JSONResponse(status_code=201, content={
+            'id': user_id,
+            'firstName': user.firstName,
+            'lastName': user.lastName,
+            'userAlias': user.userAlias
+        })
 
 @app.get("/users")
 def get_users():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, first_name, last_name, user_alias FROM users')
-    rows = cursor.fetchall()
-    conn.close()
+    request_counter.add(1, attributes={"route": "/users", "method": "GET"})
+    with tracer.start_as_current_span("get_users") as span:
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, first_name, last_name, user_alias FROM users')
+        rows = cursor.fetchall()
+        conn.close()
 
-    users = []
-    for row in rows:
-        users.append({
-            'id': row['id'],
-            'firstName': row['first_name'],
-            'lastName': row['last_name'],
-            'userAlias': row['user_alias']
-        })
-
-    return JSONResponse(content=users)
+        users = []
+        for row in rows:
+            users.append({
+                'id': row['id'],
+                'firstName': row['first_name'],
+                'lastName': row['last_name'],
+                'userAlias': row['user_alias']
+            })
+        return JSONResponse(content=users)
 
 @app.delete("/users")
 def remove_user(user: RemoveUserRequest):
+    
     if not all([user.firstName, user.lastName]):
         raise HTTPException(status_code=400, detail="Missing required fields")
+    request_counter.add(1, attributes={"route": "/users", "method": "DELETE"})
     
-    conn = sqlite3.connect(DATABASE)
-    changes = 0
-    try:
-        cursor = conn.cursor()
-        cursor.execute('''
-            DELETE FROM users 
-            WHERE first_name = ? AND last_name = ?
-        ''', (user.firstName, user.lastName))
-        conn.commit()
-        changes = conn.total_changes
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
+    with tracer.start_as_current_span("remove_user") as span:
+        span.set_attribute("user.first_name", user.firstName)
+        span.set_attribute("user.last_name", user.lastName)
+        conn = sqlite3.connect(DATABASE)
+        changes = 0
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                DELETE FROM users 
+                WHERE first_name = ? AND last_name = ?
+            ''', (user.firstName, user.lastName))
+            conn.commit()
+            changes = conn.total_changes
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            conn.close()
 
-    if changes == 0:
-        raise HTTPException(status_code=404, detail="No user found with given firstName and lastName")
-    else:
-        return JSONResponse(content={'message': 'User removed successfully'})
+        if changes == 0:
+            raise HTTPException(status_code=404, detail="No user found with given firstName and lastName")
+        else:
+            return JSONResponse(content={'message': 'User removed successfully'})
 
 @app.put("/users")
 def update_user(user: UpdateUserRequest):
@@ -128,33 +156,39 @@ def update_user(user: UpdateUserRequest):
     if not all([user.firstName, user.lastName, user.userAlias]):
         raise HTTPException(status_code=400, detail="Missing required fields")
 
-    conn = sqlite3.connect(DATABASE)
-    try:    
-        cursor = conn.cursor()
-        if user.password:
-            hashed_password = generate_password_hash(user.password)
-            cursor.execute('''
-                UPDATE users 
-                SET first_name = ?, last_name = ?, user_alias = ?, password = ?
-                WHERE id = ?
-            ''', (user.firstName, user.lastName, user.userAlias, hashed_password, user.id))
-        else:
-            cursor.execute('''
-                UPDATE users 
-                SET first_name = ?, last_name = ?, user_alias = ?
-                WHERE id = ?
-            ''', (user.firstName, user.lastName, user.userAlias, user.id))
-        conn.commit()
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="User not found")
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
-         
-    return JSONResponse(content={'message': 'User updated successfully'})
-
+    request_counter.add(1, attributes={"route": "/users", "method": "PUT"}) 
+    with tracer.start_as_current_span("update_user") as span:
+        span.set_attribute("user.id", user.id)
+        span.set_attribute("user.first_name", user.firstName)
+        span.set_attribute("user.last_name", user.lastName)
+        span.set_attribute("user.user_alias", user.userAlias)
+        conn = sqlite3.connect(DATABASE)
+        try:    
+            cursor = conn.cursor()
+            if user.password:
+                hashed_password = generate_password_hash(user.password)
+                cursor.execute('''
+                    UPDATE users 
+                    SET first_name = ?, last_name = ?, user_alias = ?, password = ?
+                    WHERE id = ?
+                ''', (user.firstName, user.lastName, user.userAlias, hashed_password, user.id))
+            else:
+                cursor.execute('''
+                    UPDATE users 
+                    SET first_name = ?, last_name = ?, user_alias = ?
+                    WHERE id = ?
+                ''', (user.firstName, user.lastName, user.userAlias, user.id))
+            conn.commit()
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="User not found")
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            conn.close()
+            
+        return JSONResponse(content={'message': 'User updated successfully'})
+#start the service run from the project root folder: python -m online_store.user.app
 if __name__ == '__main__':
     init_db()
     import uvicorn
