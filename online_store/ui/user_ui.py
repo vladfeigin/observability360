@@ -9,7 +9,7 @@ BASE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')
 def run_user_ui():
     
     st.header("User Service")
-    action = st.selectbox("Select Action", ["Select...", "Add New User", "User List", "Remove User", "Update User"], index=0)
+    action = st.selectbox("Select Action", ["Select...", "User List", "Add New User", "Update User", "Remove User", ], index=0)
     
     if action == "Select...":
         st.info("Please select an action from the dropdown.")
