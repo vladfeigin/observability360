@@ -10,7 +10,7 @@ from order_ui import run_order_ui
 load_dotenv()
 
 st.set_page_config(page_title="Online Store UI", layout="wide")
-st.title("Online Store. Observability Demo.")
+st.title("Observability Demo.")
 
 # Sidebar navigation: select a service section
 service = st.sidebar.radio("Select Service", 

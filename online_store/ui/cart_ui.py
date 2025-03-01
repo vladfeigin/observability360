@@ -12,7 +12,7 @@ ORDER_SERVICE_URL = os.environ.get("ORDER_SERVICE_URL", "http://127.0.0.1:5003")
 def run_cart_ui():
     st.title("Cart Service")
 
-    # Two main actions: List Cart Items (with inline editing) and Add Cart Item.
+    # Two main actions: List Cart Items and Add Cart Item.
     action = st.selectbox("Select Action", [
         "Select Action...",
         "List Cart Items",
@@ -58,8 +58,8 @@ def run_cart_ui():
                 st.info("No cart items found.")
                 return
 
-            # Save the user id in session state for order creation. [ADDED]
-            st.session_state["cart_user_id"] = user_id_input.strip()  # [ADDED]
+            # [ADDED] Save the user id in session state for order creation.
+            st.session_state["cart_user_id"] = user_id_input.strip()
 
             # Create a full DataFrame (df_full) from the API response.
             df_full = pd.DataFrame(items)
@@ -76,7 +76,7 @@ def run_cart_ui():
             st.session_state["cart_df_full"] = df_full
             st.session_state["cart_df_display_original"] = df_display.copy()
 
-    # Only show the editor if we have loaded cart data.
+    # Only show the editor if cart data is loaded.
     if "cart_df_display_original" in st.session_state:
         original_df_display = st.session_state["cart_df_display_original"]
 
@@ -96,6 +96,7 @@ def run_cart_ui():
             if edited_row["productName"] != original_row["productName"]:
                 st.warning(f"Row {idx+1}: Changing 'Product Name' is not allowed. This change will be ignored!")
 
+        # Save Changes button for updating/deleting individual cart items.
         if st.button("Save Changes"):
             full_df = st.session_state["cart_df_full"]
             changes_done = False
@@ -171,8 +172,8 @@ def run_cart_ui():
                 if key.startswith("cart_"):
                     del st.session_state[key]
 
-        # [ADDED] Create Order Button: Create an order for all cart items.
-        if st.button("Create Order"): 
+        # [ADDED] Create Order Button: Create an order from all cart items.
+        if st.button("Create Order"):
             if "cart_user_id" not in st.session_state:
                 st.error("User ID not found in session state.")
             else:
@@ -181,6 +182,19 @@ def run_cart_ui():
                 if response.status_code == 201:
                     order_details = response.json()
                     st.success(f"Order created successfully! Order ID: {order_details.get('orderId')}")
+                    # [ADDED] After order creation, clear the cart by deleting each cart item.
+                    if "cart_df_full" in st.session_state:
+                        df_full = st.session_state["cart_df_full"]
+                        for idx, row in df_full.iterrows():
+                            cart_item_id = row["id"]
+                            r_del = requests.delete(f"{CART_SERVICE_URL}/cart/{cart_item_id}", timeout=10)
+                            if r_del.status_code != 200:
+                                st.error(f"Failed to delete cart item with ID {cart_item_id}")
+                        # Clear cart-related session state.
+                        for key in list(st.session_state.keys()):
+                            if key.startswith("cart_"):
+                                del st.session_state[key]
+                        st.info("Cart cleared successfully.")
                 else:
                     try:
                         error_msg = response.json().get("error", response.text)
@@ -190,7 +204,7 @@ def run_cart_ui():
 
     elif action == "Add Cart Item":
         st.subheader("Add Cart Item")
-        # Clear any existing cart session state. [ADDED]
+        # Clear any existing cart session state.
         for key in list(st.session_state.keys()):
             if key.startswith("cart_"):
                 del st.session_state[key]
