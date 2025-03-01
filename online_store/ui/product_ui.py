@@ -8,6 +8,11 @@ PRODUCT_SERVICE_URL = os.environ.get('PRODUCT_SERVICE_URL', 'http://127.0.0.1:50
 CART_SERVICE_URL = os.environ.get('CART_SERVICE_URL', 'http://127.0.0.1:5002')
 
 def run_product_ui():
+    """ Product Service UI. 
+    This UI allows users to add products and list products.
+    It also allows users to add products to the cart.
+    """
+    
     st.header("Product Service")
 
     action = st.selectbox(
@@ -46,7 +51,7 @@ def run_product_ui():
         st.subheader("List and Select Products")
 
         # Fetch products from the Product service
-        response = requests.get(f"{PRODUCT_SERVICE_URL}/products")
+        response = requests.get(f"{PRODUCT_SERVICE_URL}/products", timeout=10)
         if response.status_code == 200:
             products = response.json()
             if products:
@@ -105,7 +110,7 @@ def run_product_ui():
                                     "quantity": quantity
                                 }
                                 try:
-                                    cart_response = requests.post(f"{CART_SERVICE_URL}/cart", json=cart_payload)
+                                    cart_response = requests.post(f"{CART_SERVICE_URL}/cart", json=cart_payload, timeout=10)
                                     if cart_response.status_code == 201:
                                         # 2) Now call Product Service to remove stock
                                         # NOTE: productName must match the 'name' column if that's how your DB is queried
@@ -115,8 +120,7 @@ def run_product_ui():
                                         }
                                         remove_stock_response = requests.post(
                                             f"{PRODUCT_SERVICE_URL}/products/remove_stock",
-                                            json=remove_stock_payload
-                                        )
+                                            json=remove_stock_payload, timeout=10)
                                         if remove_stock_response.status_code == 200:
                                             st.success("Product added to cart and stock updated successfully!")
                                         else:
