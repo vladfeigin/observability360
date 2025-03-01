@@ -7,7 +7,7 @@ import pandas as pd
 CART_SERVICE_URL = os.environ.get("CART_SERVICE_URL", "http://127.0.0.1:5002")
 USER_SERVICE_URL = os.environ.get("USER_SERVICE_URL", "http://127.0.0.1:5000")
 PRODUCT_SERVICE_URL = os.environ.get("PRODUCT_SERVICE_URL", "http://127.0.0.1:5001")
-ORDER_SERVICE_URL = os.environ.get("ORDER_SERVICE_URL", "http://127.0.0.1:5003")  # [ADDED]
+ORDER_SERVICE_URL = os.environ.get("ORDER_SERVICE_URL", "http://127.0.0.1:5003")
 
 def run_cart_ui():
     st.title("Cart Service")
@@ -21,60 +21,57 @@ def run_cart_ui():
 
     if action == "List Cart Items":
         st.subheader("List Cart Items")
-        user_id_input = st.text_input("User ID", help="Provide a valid User ID")
-
-        if st.button("List Items"):
-            if not user_id_input.strip():
-                st.error("User ID cannot be empty.")
-                return
-
-            # --- Retrieve user details from User Service ---
+        # [CHANGED] Instead of a text input for user ID, we call the User Service to fetch users.
+        try:
             user_response = requests.get(f"{USER_SERVICE_URL}/users", timeout=10)
             if user_response.status_code != 200:
-                st.error("Error fetching user details: " + user_response.text)
+                st.error("Error fetching users: " + user_response.text)
                 return
-
-            all_users = user_response.json()
-            try:
-                user_id_int = int(user_id_input.strip())
-            except ValueError:
-                st.error("User ID must be a valid integer.")
+            users_list = user_response.json()
+            if not users_list:
+                st.error("No users found.")
                 return
+            # Build options like "12: John Doe"
+            user_options = [f"{u['id']}: {u['firstName']} {u['lastName']}" for u in users_list]
+            selected_user = st.selectbox("Select User", user_options)  # [ADDED]
+            user_id = selected_user.split(":")[0].strip()  # [ADDED]
+        except Exception as e:
+            st.error(f"Failed to retrieve users: {e}")
+            return
 
-            user_detail = next((u for u in all_users if u.get("id") == user_id_int), None)
-            if not user_detail:
-                st.error("User not found.")
-                return
+        # Save the selected user id in session state for order creation.
+        st.session_state["cart_user_id"] = user_id  # [CHANGED]
 
-            # --- Retrieve cart items for this user ---
-            params = {"userId": user_id_input.strip()}
-            cart_response = requests.get(f"{CART_SERVICE_URL}/cart", params=params)
-            if cart_response.status_code != 200:
-                st.error("Error fetching cart items: " + cart_response.text)
-                return
-            items = cart_response.json()
-            st.markdown(f"### Cart Items for {user_detail['firstName']} {user_detail['lastName']}")
-            if not items:
-                st.info("No cart items found.")
-                return
+        # --- Retrieve cart items for this user ---
+        params = {"userId": user_id}  # [CHANGED]
+        cart_response = requests.get(f"{CART_SERVICE_URL}/cart", params=params)
+        if cart_response.status_code != 200:
+            st.error("Error fetching cart items: " + cart_response.text)
+            return
+        items = cart_response.json()
+        # [CHANGED] Use the user’s full name in the header if available.
+        # Try to locate the user details from our fetched users_list.
+        user_detail = next((u for u in users_list if str(u.get("id")) == user_id), {})
+        full_name = f"{user_detail.get('firstName', 'Unknown')} {user_detail.get('lastName', '')}"
+        st.markdown(f"### Cart Items for {full_name}")
+        if not items:
+            st.info("No cart items found.")
+            return
 
-            # [ADDED] Save the user id in session state for order creation.
-            st.session_state["cart_user_id"] = user_id_input.strip()
+        # Create a full DataFrame (df_full) from the API response.
+        df_full = pd.DataFrame(items)
+        if "id" not in df_full.columns:
+            st.error("Cart items do not include an 'id' field.")
+            return
 
-            # Create a full DataFrame (df_full) from the API response.
-            df_full = pd.DataFrame(items)
-            if "id" not in df_full.columns:
-                st.error("Cart items do not include an 'id' field.")
-                return
+        # Build a display DataFrame (df_display) with only the columns we want,
+        # plus a new 'Delete' column.
+        df_display = df_full[["productId", "productName", "quantity"]].copy()
+        df_display["Delete"] = False
 
-            # Build a display DataFrame (df_display) with only the columns we want,
-            # plus a new 'Delete' column.
-            df_display = df_full[["productId", "productName", "quantity"]].copy()
-            df_display["Delete"] = False
-
-            # Save both DataFrames in session state for persistence.
-            st.session_state["cart_df_full"] = df_full
-            st.session_state["cart_df_display_original"] = df_display.copy()
+        # Save both DataFrames in session state for persistence.
+        st.session_state["cart_df_full"] = df_full
+        st.session_state["cart_df_display_original"] = df_display.copy()
 
     # Only show the editor if cart data is loaded.
     if "cart_df_display_original" in st.session_state:
@@ -172,7 +169,7 @@ def run_cart_ui():
                 if key.startswith("cart_"):
                     del st.session_state[key]
 
-        # [ADDED] Create Order Button: Create an order from all cart items.
+        # Create Order Button remains as-is.
         if st.button("Create Order"):
             if "cart_user_id" not in st.session_state:
                 st.error("User ID not found in session state.")
@@ -182,7 +179,7 @@ def run_cart_ui():
                 if response.status_code == 201:
                     order_details = response.json()
                     st.success(f"Order created successfully! Order ID: {order_details.get('orderId')}")
-                    # [ADDED] After order creation, clear the cart by deleting each cart item.
+                    # After order creation, clear the cart by deleting each cart item.
                     if "cart_df_full" in st.session_state:
                         df_full = st.session_state["cart_df_full"]
                         for idx, row in df_full.iterrows():
