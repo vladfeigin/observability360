@@ -5,20 +5,41 @@ import pandas as pd
 
 # Order Service URL (default to port 5003)
 ORDER_SERVICE_URL = os.environ.get("ORDER_SERVICE_URL", "http://127.0.0.1:5003")
+# [NEW] User Service URL (default to port 5000)
+USER_SERVICE_URL = os.environ.get("USER_SERVICE_URL", "http://127.0.0.1:5000")
 
 def run_order_ui():
     st.title("Order Service")
     st.subheader("List My Orders")
 
-    user_id = st.text_input("User ID", help="Enter your User ID")
-    
+    # [NEW] Fetch users from the User Service
+    try:
+        user_response = requests.get(f"{USER_SERVICE_URL}/users", timeout=10)
+        if user_response.status_code != 200:
+            st.error("Error fetching users: " + user_response.text)
+            return
+        users_list = user_response.json()
+        if not users_list:
+            st.error("No users found.")
+            return
+        # Build options like "12: John Doe"
+        user_options = [f"{u['id']}: {u['firstName']} {u['lastName']}" for u in users_list]
+    except Exception as e:
+        st.error("Error retrieving users: " + str(e))
+        return
+
+    # [NEW] Use a combo box for user selection instead of text input
+    selected_user = st.selectbox("Select User", user_options)
+    # Extract user id from the selected string (assumes format "id: Name")
+    user_id = selected_user.split(":")[0].strip()
+
     if st.button("List My Orders"):
         if not user_id:
-            st.error("Please enter a valid User ID.")
+            st.error("Please select a valid User ID.")
             return
 
         # Call the Order service to list orders for this user.
-        response = requests.get(f"{ORDER_SERVICE_URL}/orders", params={"userId": user_id})
+        response = requests.get(f"{ORDER_SERVICE_URL}/orders", params={"userId": user_id}, timeout=10)
         if response.status_code != 200:
             st.error("Error fetching orders: " + response.text)
             return
@@ -31,12 +52,10 @@ def run_order_ui():
         # Instead of combining product details into one cell,
         # iterate over orders and display each order in an expander.
         for order in orders:
-            # Display order header in the expander title.
             expander_title = f"Order ID: {order.get('orderId')} | Date: {order.get('orderDate')}"
             with st.expander(expander_title):
                 products = order.get("products", [])
                 if products:
-                    # Create a DataFrame for the product list.
                     df_products = pd.DataFrame(products)
                     st.table(df_products)
                 else:

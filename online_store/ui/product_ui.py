@@ -6,6 +6,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 PRODUCT_SERVICE_URL = os.environ.get('PRODUCT_SERVICE_URL', 'http://127.0.0.1:5001')
 CART_SERVICE_URL = os.environ.get('CART_SERVICE_URL', 'http://127.0.0.1:5002')
+USER_SERVICE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')  # [NEW]
 
 def run_product_ui():
     """ Product Service UI. 
@@ -40,7 +41,7 @@ def run_product_ui():
                     "numberItemsInStock": number_items_in_stock,
                     "price": price
                 }
-                response = requests.post(f"{PRODUCT_SERVICE_URL}/products", json=payload)
+                response = requests.post(f"{PRODUCT_SERVICE_URL}/products", json=payload, timeout=10)
                 if response.status_code == 201:
                     st.success("Product added successfully!")
                 else:
@@ -92,15 +93,37 @@ def run_product_ui():
                         f"- {selected_product['name']}"
                     )
 
+                    # [CHANGED] Instead of asking for a User ID via text,
+                    # call the User Service and allow user to select from a combo box.
+                    try:
+                        user_response = requests.get(f"{USER_SERVICE_URL}/users", timeout=10)
+                        if user_response.status_code != 200:
+                            st.error("Error fetching users: " + user_response.text)
+                        else:
+                            users_list = user_response.json()
+                            if users_list:
+                                # Build a list of options (each option: "id: firstName lastName")
+                                user_options = [f"{u['id']}: {u['firstName']} {u['lastName']}" for u in users_list]
+                                selected_user = st.selectbox("Select User", user_options)  # [CHANGED]
+                                # Extract the user id from the selected string.
+                                user_id = selected_user.split(":")[0].strip()  # [CHANGED]
+                            else:
+                                st.error("No users found.")
+                                return
+                    except Exception as e:
+                        st.error(f"Failed to retrieve users: {e}")
+                        return
+
                     # Show form to add selected product to cart
                     with st.form("add_to_cart_form"):
-                        user_id = st.text_input("User ID", help="ID of the user who will own this cart item")
+                        # Remove the text input for user ID. User already selected from combo box.
+                        # user_id = st.text_input("User ID", help="ID of the user who will own this cart item")
                         quantity = st.number_input("Quantity", min_value=1, step=1)
                         add_cart_submitted = st.form_submit_button("Add to Cart")
 
                         if add_cart_submitted:
                             if not user_id:
-                                st.warning("Please provide a User ID.")
+                                st.warning("Please select a user.")
                             else:
                                 # 1) Call Cart Service to add item
                                 cart_payload = {

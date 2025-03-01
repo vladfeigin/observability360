@@ -6,6 +6,7 @@ import pandas as pd
 # Use environment variable with a fallback default (adjust port as needed)
 BASE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')
 
+
 def run_user_ui():
     
     st.header("User Service")
@@ -29,7 +30,7 @@ def run_user_ui():
                     "userAlias": user_alias,
                     "password": password
                 }
-                response = requests.post(f"{BASE_URL}/users", json=payload)
+                response = requests.post(f"{BASE_URL}/users", json=payload,timeout=10)
                 if response.status_code == 201:
                     st.success("User added successfully!")
                 else:
@@ -37,12 +38,12 @@ def run_user_ui():
 
     elif action == "User List":
         #if st.button("Refresh User List"):
-            response = requests.get(f"{BASE_URL}/users")
+            response = requests.get(f"{BASE_URL}/users", timeout=10)
             if response.status_code == 200:
                 users = response.json()
                 if users:
                     df = pd.DataFrame(users, columns=['id', 'firstName', 'lastName', 'userAlias'])
-                    st.table(df)
+                    st.markdown(df.to_html(index=False), unsafe_allow_html=True)
                 else:
                     st.info("No users found.")
             else:
