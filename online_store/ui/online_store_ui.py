@@ -12,6 +12,27 @@ load_dotenv()
 st.set_page_config(page_title="Online Store UI", layout="wide")
 st.title("Observability Demo.")
 
+
+svg_logo = """
+<svg width="300" height="150" viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Eye shape -->
+  <path d="M20,75 C80,10 220,10 280,75 C220,140 80,140 20,75 Z" 
+        fill="#007ACC" stroke="#005A9E" stroke-width="2"/>
+  <!-- Enlarged white circle (pupil) -->
+  <circle cx="150" cy="75" r="30" fill="#ffffff" />
+  <!-- Extended pulse line spanning from left to right of the eye -->
+  <polyline points="20,75 50,65 80,85 110,60 140,75 170,90 200,65 230,80 260,70 280,75" 
+            stroke="#ffdd00" stroke-width="3" fill="none"/>
+  <!-- Letter K centered in the white circle -->
+  <text x="150" y="75" text-anchor="middle" alignment-baseline="middle" 
+        font-family="Arial" font-size="24" font-weight="bold" fill="#000000">
+    K
+  </text>
+</svg>
+"""
+
+st.markdown(svg_logo, unsafe_allow_html=True)
+
 # Sidebar navigation: select a service section
 service = st.sidebar.radio("Select Service", 
                            ["Home", "User Service", "Product Service", "Cart Service", "Order Service", ])
