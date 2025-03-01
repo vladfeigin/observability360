@@ -1,11 +1,10 @@
 import os
 import sqlite3
-from flask import Flask, request, jsonify
-import requests
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+import uvicorn
 
-app = Flask(__name__)
-
-# Define the path to the cart service database
+app = FastAPI()
 DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 print(f"DB=={DATABASE}")
 
@@ -17,6 +16,7 @@ def init_db():
       - id: auto-increment primary key
       - user_id: identifier for the user owning the cart
       - product_id: identifier for the product added to the cart
+      - product_name: name of the product
       - quantity: number of units for the product
     """
     db_dir = os.path.dirname(DATABASE)
@@ -37,24 +37,23 @@ def init_db():
     conn.commit()
     conn.close()
 
-@app.route('/cart', methods=['GET'])
-def list_cart_items():
+@app.get("/cart")
+def list_cart_items(userId: str = None):
     """
     ListCartItems API.
     Returns a list of cart items in JSON format.
     You can filter items by providing a query parameter 'userId'.
     """
-    user_id = request.args.get('userId')
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    if user_id:
+    if userId:
         cursor.execute('''
             SELECT id, user_id, product_id, product_name, quantity FROM cart_items WHERE user_id = ?
-        ''', (user_id,))
+        ''', (userId,))
     else:
         cursor.execute('''
-            SELECT id, user_id, product_id, product_name ,quantity FROM cart_items
+            SELECT id, user_id, product_id, product_name, quantity FROM cart_items
         ''')
     rows = cursor.fetchall()
     conn.close()
@@ -68,56 +67,55 @@ def list_cart_items():
             'productName': row['product_name'],
             'quantity': row['quantity']
         })
-    return jsonify(cart_items), 200
+    return JSONResponse(content=cart_items, status_code=200)
 
-@app.route('/cart', methods=['POST'])
-def add_cart_item():
+@app.post("/cart", status_code=201)
+async def add_cart_item(request: Request):
     """
     AddCartItem API.
-    Expects a JSON payload with: userId, productId, and quantity.
+    Expects a JSON payload with: userId, productId, productName, and quantity.
     This endpoint calls the Product service's RemoveProductFromStock method.
     RemoveProductFromStock will attempt to decrease the product's stock by the required quantity.
     If the product doesn't have the required quantity in stock, it returns an error.
     """
-    data = request.get_json()
+    data = await request.json()
     user_id = data.get('userId')
     product_id = data.get('productId')
     product_name = data.get('productName')
     try:
         quantity = int(data.get('quantity'))
     except (TypeError, ValueError):
-        return jsonify({'error': 'Invalid quantity provided'}), 400
-
+        raise HTTPException(status_code=400, detail="Invalid quantity provided")
+    
     if not all([user_id, product_id, quantity]):
-        return jsonify({'error': 'Missing required fields'}), 400
+        raise HTTPException(status_code=400, detail="Missing required fields")
 
-    # Add the item to the cart after successful stock update by Product service
     conn = sqlite3.connect(DATABASE)
     try:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO cart_items (user_id, product_id, product_name ,quantity)
+            INSERT INTO cart_items (user_id, product_id, product_name, quantity)
             VALUES (?, ?, ?, ?)
-        ''', (user_id, product_id, product_name ,quantity))
+        ''', (user_id, product_id, product_name, quantity))
         conn.commit()
     except Exception as e:
         conn.rollback()
-        return jsonify({'error': f'Failed to add item to cart: {str(e)}'}), 500     
+        raise HTTPException(status_code=500, detail=f"Failed to add item to cart: {str(e)}")
     finally:
         conn.close()
 
-    return jsonify({'message': 'Cart item added successfully'}), 201
+    return JSONResponse(content={'message': 'Cart item added successfully'}, status_code=201)
 
-@app.route('/cart/<int:item_id>', methods=['PUT'])
-def update_cart_item(item_id):
+@app.put("/cart/{item_id}")
+async def update_cart_item(item_id: int, request: Request):
     """
     UpdateCartItem API.
     Expects a JSON payload with the new quantity for the specified cart item.
     """
-    data = request.get_json()
+    data = await request.json()
     quantity = data.get('quantity')
     if quantity is None:
-        return jsonify({'error': 'Missing quantity field'}), 400
+        raise HTTPException(status_code=400, detail="Missing quantity field")
 
     conn = sqlite3.connect(DATABASE)
     try:
@@ -126,14 +124,14 @@ def update_cart_item(item_id):
         conn.commit()
     except Exception as e:
         conn.rollback()
-        return jsonify({'error': f'Failed to update cart item: {str(e)}'}), 500
+        raise HTTPException(status_code=500, detail=f"Failed to update cart item: {str(e)}")
     finally:
         conn.close()
 
-    return jsonify({'message': 'Cart item updated successfully'}), 200
+    return JSONResponse(content={'message': 'Cart item updated successfully'}, status_code=200)
 
-@app.route('/cart/<int:item_id>', methods=['DELETE'])
-def delete_cart_item(item_id):
+@app.delete("/cart/{item_id}")
+def delete_cart_item(item_id: int):
     """
     DeleteCartItem API.
     Deletes a cart item by its ID.
@@ -143,10 +141,8 @@ def delete_cart_item(item_id):
     cursor.execute('DELETE FROM cart_items WHERE id = ?', (item_id,))
     conn.commit()
     conn.close()
-
-    return jsonify({'message': 'Cart item deleted successfully'}), 200
+    return JSONResponse(content={'message': 'Cart item deleted successfully'}, status_code=200)
 
 if __name__ == '__main__':
     init_db()  # Ensure the database and table are set up before running the service
-    app.run(debug=True, port=5002)
-    
+    uvicorn.run(app, host="127.0.0.1", port=5002)
