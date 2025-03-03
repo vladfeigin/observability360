@@ -1,8 +1,9 @@
 locals {
-  otel_collector_image_name = "${var.base_name}-otel-collector:latest"
+  otel_collector_image_name              = "${var.base_name}-otel-collector:latest"
   opentelemetry_collector_directory_path = "../../opentelemetry-collector"
 }
 
+# OTEL Collector Identity
 resource "azuread_application" "otel" {
   display_name = "otelcollector"
   owners       = [data.azuread_client_config.current.object_id]
@@ -29,72 +30,130 @@ resource "azurerm_kusto_database_principal_assignment" "otel" {
   principal_type = "App"
   role           = "Ingestor"
 
-  depends_on = [ azuread_service_principal_password.otel ]
+  depends_on = [azuread_service_principal_password.otel]
 }
 
+# OTEL Collector Configuration
 resource "local_file" "otel_collector_config" {
   filename = "${path.cwd}/${local.opentelemetry_collector_directory_path}/config.yaml"
   content = templatefile("${path.cwd}/${local.opentelemetry_collector_directory_path}/config.tftpl", {
     adx_cluster_uri = data.azurerm_kusto_cluster.demo.uri,
-    application_id = azuread_service_principal.otel.client_id,
+    application_id  = azuread_service_principal.otel.client_id,
     application_key = azuread_service_principal_password.otel.value,
-    tenant_id = data.azuread_client_config.current.tenant_id
+    tenant_id       = data.azuread_client_config.current.tenant_id
   })
 }
 
-resource "docker_image" "otel_collector" {
-  name = "${data.azurerm_container_registry.demo.login_server}/${local.otel_collector_image_name}"
-  keep_locally = false
-  
-  build {
-    context = "${path.cwd}/${local.opentelemetry_collector_directory_path}"
+# OTEL Collector Kubernetes Resources
+resource "kubernetes_namespace" "opentelemtry" {
+  metadata {
+    name = "opentelemtry"
+  }
+}
+resource "kubernetes_config_map" "collector_config" {
+  metadata {
+    name      = "collector-config"
+    namespace = kubernetes_namespace.opentelemtry.metadata[0].name
   }
 
-  triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.opentelemetry_collector_directory_path}/*") : filesha1(f)]))
+  data = {
+    "config.yaml" = file(local_file.otel_collector_config.filename)
   }
-  depends_on = [ local_file.otel_collector_config ]
 }
 
-resource "docker_registry_image" "otel_collector" {
-  name          = docker_image.otel_collector.name
-  keep_remotely = true
+resource "kubernetes_deployment" "otel_collector" {
+  metadata {
+    name      = "otel-collector"
+    namespace = kubernetes_namespace.opentelemtry.metadata[0].name
+  }
 
-  triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.opentelemetry_collector_directory_path}/*") : filesha1(f)]))
-  } 
+  spec {
+    replicas = 3
+
+    selector {
+      match_labels = {
+        app = "otel-collector"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "otel-collector"
+        }
+      }
+
+      spec {
+        container {
+          name  = "otel-collector"
+          image = "otel/opentelemetry-collector-contrib:0.120.0"
+          resources {
+            limits = {
+              cpu    = "1"
+              memory = "2Gi"
+            }
+            requests = {
+              cpu    = "500m"
+              memory = "1Gi"
+            }
+          }
+
+          port {
+            container_port = 4317
+            protocol       = "TCP"
+          }
+
+          port {
+            container_port = 4318
+            protocol       = "TCP"
+          }
+
+          volume_mount {
+            name       = "collector-config"
+            mount_path = "/etc/otelcol-contrib"
+          }
+
+        }
+        volume {
+          name = "collector-config"
+          config_map {
+            name = kubernetes_config_map.collector_config.metadata[0].name
+            items {
+              key  = "config.yaml"
+              path = "config.yaml"
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
-resource "azurerm_container_group" "otel_collector" {
-  name                = "otel-collector"
-  location            = data.azurerm_resource_group.demo.location
-  resource_group_name = data.azurerm_resource_group.demo.name
-  ip_address_type     = "Public"
-  dns_name_label      = "${var.base_name}-otel-collector"
-  os_type             = "Linux"
-
-  image_registry_credential {
-    server = data.azurerm_container_registry.demo.login_server
-    username = data.azurerm_container_registry.demo.admin_username
-    password = data.azurerm_container_registry.demo.admin_password
+resource "kubernetes_service" "otel_collector" {
+  metadata {
+    name      = "otel-collector"
+    namespace = kubernetes_namespace.opentelemtry.metadata[0].name
   }
 
-  container {
-    name   = "otel-collector"
-    image = docker_registry_image.otel_collector.name
-    cpu    = "1"
-    memory = "2"
-
-    ports {
-      port     = 4317
-      protocol = "TCP"
+  spec {
+    selector = {
+      app = "otel-collector"
     }
 
-    ports {
-      port     = 4318
-      protocol = "TCP"
+    port {
+      name        = "http"
+      port        = 4317
+      target_port = 4317
+      protocol    = "TCP"
     }
+
+    port {
+      name        = "grpc"
+      port        = 4318
+      target_port = 4318
+      protocol    = "TCP"
+    }
+
+    type = "ClusterIP"
   }
-
-  depends_on = [ docker_registry_image.otel_collector ]
 }

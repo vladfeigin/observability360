@@ -15,8 +15,8 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```sh
-git clone https://github.com/vladfeigin/openteldemo.git
-cd openteldemo
+git clone https://github.com/vladfeigin/observability360.git
+cd observability360
 ```
 
 ### 2. Deploy the demo services
@@ -38,6 +38,7 @@ az login
 
 ```sh
 cd infra
+terraform init
 terraform apply -auto-approve -var-file="../terraform.tfvars"
 ```
 wait for the process to finish, it might take a while.
@@ -60,6 +61,7 @@ make sure that docker runtime is running (Docker-Desktop for windows/mac and doc
 
 ```sh
 cd ../app
+terraform init
 terraform apply -auto-approve -var-file="../terraform.tfvars"
 ```
 
