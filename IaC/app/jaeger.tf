@@ -67,6 +67,7 @@ resource "docker_image" "jaeger_plugin" {
   triggers = {
     dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.jaeger_plugin_directory_path}/**") : filesha1(f)]))
   }
+
   depends_on = [local_file.jaeger_kusto_config]
 }
 
@@ -78,7 +79,7 @@ resource "docker_registry_image" "jaeger_plugin" {
     dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.jaeger_plugin_directory_path}/**") : filesha1(f)]))
   }
 
-  depends_on = [ docker_image.jaeger_plugin ]
+  depends_on = [docker_image.jaeger_plugin]
 }
 
 
