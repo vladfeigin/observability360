@@ -44,6 +44,34 @@ resource "azurerm_network_security_rule" "aks_http" {
   destination_address_prefix  = "*"
 }
 
+resource "azurerm_network_security_rule" "aks_otel_http" {
+  name                        = "${var.base_name}-otel-http-rule"
+  resource_group_name         = azurerm_resource_group.demo.name
+  network_security_group_name = azurerm_network_security_group.aks.name
+  priority                    = 101
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "4317"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+}
+
+resource "azurerm_network_security_rule" "aks_otel_grpc" {
+  name                        = "${var.base_name}-otel-grpc-rule"
+  resource_group_name         = azurerm_resource_group.demo.name
+  network_security_group_name = azurerm_network_security_group.aks.name
+  priority                    = 102
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "4318"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+}
+
 resource "azurerm_subnet_network_security_group_association" "aks" {
   subnet_id                 = azurerm_subnet.aks.id
   network_security_group_id = azurerm_network_security_group.aks.id
