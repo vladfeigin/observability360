@@ -141,19 +141,19 @@ resource "kubernetes_service" "otel_collector" {
     }
 
     port {
-      name        = "http"
+      name        = "grpc"
       port        = 4317
       target_port = 4317
       protocol    = "TCP"
     }
 
     port {
-      name        = "grpc" # TODO: switch between the names
+      name        = "http" # TODO: switch between the names
       port        = 4318
       target_port = 4318
       protocol    = "TCP"
     }
 
-    type = "LoadBalancer"
+    type = "ClusterIP"
   }
 }

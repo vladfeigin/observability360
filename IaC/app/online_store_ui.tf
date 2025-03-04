@@ -4,15 +4,6 @@ locals {
   online_store_ui_directory_path = "${local.online_store_directory_path}/${local.online_store_ui_directory_name}"
 }
 
-resource "local_file" "online_store_ui_env" {
-  filename = "${path.cwd}/${local.online_store_ui_directory_path}/.env"
-  content = templatefile("${path.cwd}/${local.online_store_ui_directory_path}/.env.tftpl", {
-    order_service_url   = local.order_service_url,
-    user_service_url    = local.user_service_url,
-    product_service_url = local.product_service_url,
-    cart_service_url    = local.cart_service_url
-  })
-}
 
 resource "docker_image" "online_store_ui" {
   name         = "${data.azurerm_container_registry.demo.login_server}/${local.online_store_ui_image_name}"
@@ -20,15 +11,13 @@ resource "docker_image" "online_store_ui" {
 
   build {
     context  = "${path.cwd}/${local.online_store_directory_path}"
-    dockerfile = "ui/Dockerfile"
+    dockerfile = "${local.online_store_ui_directory_name}/Dockerfile"
     platform = "linux/amd64"
   }
 
   triggers = {
     dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.online_store_ui_directory_path}/*") : filesha1(f)]))
   }
-
-  depends_on = [local_file.online_store_ui_env]
 }
 
 resource "docker_registry_image" "online_store_ui" {
@@ -77,12 +66,33 @@ resource "kubernetes_deployment" "online_store_ui" {
               memory = "1Gi"
             }
           }
-          # TODO: complete the container ports
+
           port {
             container_port = 8501
             protocol       = "TCP"
           }
-          # TODO: Discuss with vlad if env vars in the file level or in the deployment level
+
+          env {
+            name = "OTEL_EXPORTER_OTLP_ENDPOINT"
+            value = "http://${kubernetes_service.otel_collector.metadata[0].name}.${kubernetes_namespace.opentelemtry.metadata[0].name}.svc.cluster.local:4317"
+          }
+
+          env {
+            name  = "ORDER_SERVICE_URL"
+            value = local.order_service_url
+          }
+          env {
+            name  = "USER_SERVICE_URL"
+            value = local.user_service_url
+          }
+          env {
+            name  = "PRODUCT_SERVICE_URL"
+            value = local.product_service_url
+          }
+          env {
+            name  = "CART_SERVICE_URL"
+            value = local.cart_service_url
+          }
         }
       }
     }
