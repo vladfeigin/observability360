@@ -1,8 +1,9 @@
 import os
 import sqlite3
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
 
-app = Flask(__name__)
+app = FastAPI()
 DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 print(f"DB=={DATABASE}")
 
@@ -30,7 +31,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-@app.route('/products', methods=['GET'])
+@app.get("/products")
 def list_products():
     """
     ListProducts API.
@@ -55,16 +56,16 @@ def list_products():
             'numberItemsInStock': row['number_items_in_stock'],
             'price': row['price']
         })
-    return jsonify(products), 200
+    return JSONResponse(content=products, status_code=200)
 
-@app.route('/products', methods=['POST'])
-def add_product():
+@app.post("/products", status_code=201)
+async def add_product(request: Request):
     """
     AddProduct API.
     Expects a JSON payload with: productId, name, description (optional), 
     numberItemsInStock, and price.
     """
-    data = request.get_json()
+    data = await request.json()
     product_id = data.get('productId')
     name = data.get('name')
     description = data.get('description', '')
@@ -72,7 +73,7 @@ def add_product():
     price = data.get('price')
 
     if not all([product_id, name, number_items_in_stock, price]):
-        return jsonify({'error': 'Missing required fields'}), 400
+        raise HTTPException(status_code=400, detail="Missing required fields")
 
     conn = sqlite3.connect(DATABASE)
     try:
@@ -84,33 +85,33 @@ def add_product():
         conn.commit()
     except Exception as e:
         conn.rollback()
-        return jsonify({'error': f'Failed to add product: {str(e)}'}), 500
+        raise HTTPException(status_code=500, detail=f"Failed to add product: {str(e)}")
     finally:
         conn.close()
 
-    return jsonify({'message': 'Product added successfully'}), 201
+    return JSONResponse(content={'message': 'Product added successfully'}, status_code=201)
 
-@app.route('/products/remove_stock', methods=['POST'])
-def remove_product_from_stock():
+@app.post("/products/remove_stock")
+async def remove_product_from_stock(request: Request):
     """
     RemoveProductFromStock API.
     Expects a JSON payload with: productName and required_qty.
     Decreases the number_items_in_stock for the given product by required_qty.
     If the product is not found or does not have enough stock, returns an error.
     """
-    data = request.get_json()
+    data = await request.json()
     product_name = data.get('productName')
     required_qty = data.get('required_qty')
 
     if not product_name or required_qty is None:
-        return jsonify({'error': 'Missing required fields: productName and required_qty'}), 400
+        raise HTTPException(status_code=400, detail="Missing required fields: productName and required_qty")
 
     try:
         required_qty = int(required_qty)
         if required_qty <= 0:
             raise ValueError()
     except ValueError:
-        return jsonify({'error': 'Invalid required_qty value'}), 400
+        raise HTTPException(status_code=400, detail="Invalid required_qty value")
 
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -120,40 +121,40 @@ def remove_product_from_stock():
 
     if row is None:
         conn.close()
-        return jsonify({'error': f'Product: {product_name}  not found'}), 404
+        raise HTTPException(status_code=404, detail=f"Product: {product_name} not found")
 
     current_stock = row['number_items_in_stock']
     if current_stock < required_qty:
         conn.close()
-        return jsonify({'error': 'The required quantity is not in stock'}), 400
+        raise HTTPException(status_code=400, detail="The required quantity is not in stock")
 
     new_stock = current_stock - required_qty
     cursor.execute('UPDATE products SET number_items_in_stock = ? WHERE name = ?', (new_stock, product_name))
     conn.commit()
     conn.close()
 
-    return jsonify({'message': f'Successfully removed {required_qty} items from {product_name}. New stock is {new_stock}.'}), 200
+    return JSONResponse(content={'message': f"Successfully removed {required_qty} items from {product_name}. New stock is {new_stock}."}, status_code=200)
 
-@app.route('/products/add_stock', methods=['POST'])
-def add_product_to_stock():
+@app.post("/products/add_stock")
+async def add_product_to_stock(request: Request):
     """
     AddProductToStock API.
     Expects a JSON payload with: productName and added_qty.
     Increases the number_items_in_stock for the given product by added_qty.
     """
-    data = request.get_json()
+    data = await request.json()
     product_name = data.get('productName')
     added_qty = data.get('added_qty')
 
     if not product_name or added_qty is None:
-        return jsonify({'error': 'Missing required fields: productName and added_qty'}), 400
+        raise HTTPException(status_code=400, detail="Missing required fields: productName and added_qty")
 
     try:
         added_qty = int(added_qty)
         if added_qty <= 0:
             raise ValueError()
     except ValueError:
-        return jsonify({'error': 'Invalid added_qty value'}), 400
+        raise HTTPException(status_code=400, detail="Invalid added_qty value")
 
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -163,7 +164,7 @@ def add_product_to_stock():
 
     if row is None:
         conn.close()
-        return jsonify({'error': 'Product not found'}), 404
+        raise HTTPException(status_code=404, detail="Product not found")
 
     current_stock = row['number_items_in_stock']
     new_stock = current_stock + added_qty
@@ -171,8 +172,9 @@ def add_product_to_stock():
     conn.commit()
     conn.close()
 
-    return jsonify({'message': f'Successfully added {added_qty} items to {product_name}. New stock is {new_stock}.'}), 200
+    return JSONResponse(content={'message': f"Successfully added {added_qty} items to {product_name}. New stock is {new_stock}."}, status_code=200)
 
 if __name__ == '__main__':
-    init_db()  # Create the products table (and seed data if needed)
-    app.run(debug=True, port=5001)
+    init_db()
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=5001)

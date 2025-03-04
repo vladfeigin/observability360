@@ -1,22 +1,35 @@
-
-#start the service from the project root folder
-#python ./online_store/user/app.py
 import os
 import sqlite3
-from flask import Flask, request, jsonify
+from datetime import datetime
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from werkzeug.security import generate_password_hash
+import logging
+from online_store.otel.otel import configure_telemetry
 
-app = Flask(__name__)
+SERVICE_VERSION = "1.0.0"
+
+app = FastAPI()
+instruments = configure_telemetry(app, "user service", SERVICE_VERSION)
+
+# Get instruments
+meter = instruments["meter"]
+tracer = instruments["tracer"]
+# Create metrics instruments
+request_counter = meter.create_counter(
+    name="http_requests_total",
+    description="Total number of HTTP requests to the user service",
+    unit="1"
+)
+
 DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 print(f"DB=={DATABASE}")
 
 def init_db():
-    
     db_dir = os.path.dirname(DATABASE)
     if not os.path.exists(db_dir):
         raise Exception(f"Database directory {db_dir} does not exist. Try run the service from the project root folder.")
-        
-    """Initialize the SQLite database and create the users table if it doesn't exist."""
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute('''
@@ -31,153 +44,152 @@ def init_db():
     conn.commit()
     conn.close()
 
-@app.route('/users', methods=['POST'])
-def add_user():
-    """
-    AddUser API.
-    Expects a JSON payload with: firstName, lastName, userAlias, password.
-    Returns the created user's details (excluding the password).
-    """
-    data = request.get_json()
-    first_name = data.get('firstName')
-    last_name = data.get('lastName')
-    user_alias = data.get('userAlias')
-    password = data.get('password')
+# Pydantic models for request bodies
+class AddUserRequest(BaseModel):
+    firstName: str
+    lastName: str
+    userAlias: str
+    password: str
+
+class RemoveUserRequest(BaseModel):
+    firstName: str
+    lastName: str
+
+class UpdateUserRequest(BaseModel):
+    id: int
+    firstName: str
+    lastName: str
+    userAlias: str
+    password: str = None
+
+@app.post("/users", status_code=201)
+def add_user(user: AddUserRequest):
+    if not all([user.firstName, user.lastName, user.userAlias, user.password]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
     
-    if not all([first_name, last_name, user_alias, password]):
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    hashed_password = generate_password_hash(password)
+    request_counter.add(1, attributes={"route": "/users", "method": "POST" })
+    hashed_password = generate_password_hash(user.password)
     
-    conn = sqlite3.connect(DATABASE)
-    try:
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO users (first_name, last_name, user_alias, password)
-            VALUES (?, ?, ?, ?)
-        ''', (first_name, last_name, user_alias, hashed_password))
-        conn.commit()
-        user_id = cursor.lastrowid
-    except Exception as e:
-        conn.rollback()
-        return jsonify({'error': str(e)}), 500
-    finally:    
-        conn.close()
+    with tracer.start_as_current_span("add_user") as span:
+        span.set_attribute("user.first_name", user.firstName)
+        span.set_attribute("user.last_name", user.lastName)
+        span.set_attribute("user.user_alias", user.userAlias)
+        
+        conn = sqlite3.connect(DATABASE)
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO users (first_name, last_name, user_alias, password)
+                VALUES (?, ?, ?, ?)
+            ''', (user.firstName, user.lastName, user.userAlias, hashed_password))
+            conn.commit()
+            user_id = cursor.lastrowid
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:    
+            conn.close()
 
-    return jsonify({
-        'id': user_id,
-        'firstName': first_name,
-        'lastName': last_name,
-        'userAlias': user_alias
-    }), 201
-
-@app.route('/users', methods=['GET'])
-def get_users():
-    """
-    GetUsers API.
-    Returns a list of all users.
-    """
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, first_name, last_name, user_alias FROM users')
-    rows = cursor.fetchall()
-    conn.close()
-
-    users = []
-    for row in rows:
-        users.append({
-            'id': row['id'],
-            'firstName': row['first_name'],
-            'lastName': row['last_name'],
-            'userAlias': row['user_alias']
+        return JSONResponse(status_code=201, content={
+            'id': user_id,
+            'firstName': user.firstName,
+            'lastName': user.lastName,
+            'userAlias': user.userAlias
         })
 
-    return jsonify(users), 200
-
-@app.route('/users', methods=['DELETE'])
-def remove_user():
-    """
-    RemoveUser API.
-    Expects a JSON payload with: firstName, lastName.
-    Deletes user(s) matching the given names.
-    """
-    data = request.get_json()
-    first_name = data.get('firstName')
-    last_name = data.get('lastName')
-    
-    if not all([first_name, last_name]):
-        return jsonify({'error': 'Missing required fields'}), 400
-    
-    
-    conn = sqlite3.connect(DATABASE)
-    changes = 0
-    try:
+@app.get("/users")
+def get_users():
+    request_counter.add(1, attributes={"route": "/users", "method": "GET"})
+    with tracer.start_as_current_span("get_users") as span:
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        cursor.execute('''
-            DELETE FROM users 
-            WHERE first_name = ? AND last_name = ?
-        ''', (first_name, last_name))
-        conn.commit()
-        changes = conn.total_changes
-    except Exception as e:
-        conn.rollback()
-        return jsonify({'error': str(e)}), 500
-    finally:
+        cursor.execute('SELECT id, first_name, last_name, user_alias FROM users')
+        rows = cursor.fetchall()
         conn.close()
 
-    if changes == 0:
-        return jsonify({'error': 'No user found with given firstName and lastName'}), 404
-    else:
-        return jsonify({'message': 'User removed successfully'}), 200
+        users = []
+        for row in rows:
+            users.append({
+                'id': row['id'],
+                'firstName': row['first_name'],
+                'lastName': row['last_name'],
+                'userAlias': row['user_alias']
+            })
+        return JSONResponse(content=users)
 
-@app.route('/users', methods=['PUT'])
-def update_user():
-    """
-    UpdateUser API.
-    Expects a JSON payload with: id, firstName, lastName, userAlias, and optional password.
-    Updates the user's details.
-    """
-    data = request.get_json()
-    user_id = data.get('id')
-    if not user_id:
-        return jsonify({'error': 'Missing user id'}), 400
-
-    first_name = data.get('firstName')
-    last_name = data.get('lastName')
-    user_alias = data.get('userAlias')
-    password = data.get('password')
+@app.delete("/users")
+def remove_user(user: RemoveUserRequest):
     
-    if not all([first_name, last_name, user_alias]):
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    conn = sqlite3.connect(DATABASE)
-    try:    
-        cursor = conn.cursor()
-        if password:
-            hashed_password = generate_password_hash(password)
+    if not all([user.firstName, user.lastName]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+    request_counter.add(1, attributes={"route": "/users", "method": "DELETE"})
+    
+    with tracer.start_as_current_span("remove_user") as span:
+        span.set_attribute("user.first_name", user.firstName)
+        span.set_attribute("user.last_name", user.lastName)
+        conn = sqlite3.connect(DATABASE)
+        changes = 0
+        try:
+            cursor = conn.cursor()
             cursor.execute('''
-                UPDATE users 
-                SET first_name = ?, last_name = ?, user_alias = ?, password = ?
-                WHERE id = ?
-            ''', (first_name, last_name, user_alias, hashed_password, user_id))
+                DELETE FROM users 
+                WHERE first_name = ? AND last_name = ?
+            ''', (user.firstName, user.lastName))
+            conn.commit()
+            changes = conn.total_changes
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            conn.close()
+
+        if changes == 0:
+            raise HTTPException(status_code=404, detail="No user found with given firstName and lastName")
         else:
-            cursor.execute('''
-                UPDATE users 
-                SET first_name = ?, last_name = ?, user_alias = ?
-                WHERE id = ?
-            ''', (first_name, last_name, user_alias, user_id))
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        return jsonify({'error': str(e)}), 500
-    finally:
-         if cursor.rowcount == 0:
-            return jsonify({'error': 'User not found'}), 404
-         conn.close()
-         
-    return jsonify({'message': 'User updated successfully'}), 200
+            return JSONResponse(content={'message': 'User removed successfully'})
 
+@app.put("/users")
+def update_user(user: UpdateUserRequest):
+    if not user.id:
+        raise HTTPException(status_code=400, detail="Missing user id")
+    if not all([user.firstName, user.lastName, user.userAlias]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    request_counter.add(1, attributes={"route": "/users", "method": "PUT"}) 
+    with tracer.start_as_current_span("update_user") as span:
+        span.set_attribute("user.id", user.id)
+        span.set_attribute("user.first_name", user.firstName)
+        span.set_attribute("user.last_name", user.lastName)
+        span.set_attribute("user.user_alias", user.userAlias)
+        conn = sqlite3.connect(DATABASE)
+        try:    
+            cursor = conn.cursor()
+            if user.password:
+                hashed_password = generate_password_hash(user.password)
+                cursor.execute('''
+                    UPDATE users 
+                    SET first_name = ?, last_name = ?, user_alias = ?, password = ?
+                    WHERE id = ?
+                ''', (user.firstName, user.lastName, user.userAlias, hashed_password, user.id))
+            else:
+                cursor.execute('''
+                    UPDATE users 
+                    SET first_name = ?, last_name = ?, user_alias = ?
+                    WHERE id = ?
+                ''', (user.firstName, user.lastName, user.userAlias, user.id))
+            conn.commit()
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="User not found")
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            conn.close()
+            
+        return JSONResponse(content={'message': 'User updated successfully'})
+#start the service run from the project root folder: python -m online_store.user.app
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, port=5000)
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=5000)
