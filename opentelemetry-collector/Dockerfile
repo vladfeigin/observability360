@@ -1,6 +1,4 @@
-FROM otel/opentelemetry-collector-contrib
-
-COPY config.yaml /etc/otelcol-contrib/
+FROM --platform=linux/amd64 otel/opentelemetry-collector-contrib
 
 EXPOSE 13133
 EXPOSE 4317

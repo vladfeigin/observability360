@@ -7,7 +7,7 @@ from online_store.otel.otel import configure_telemetry
 SERVICE_VERSION = "1.0.0"
 
 app = FastAPI()
-instruments = configure_telemetry(app, "User Service", SERVICE_VERSION)
+instruments = configure_telemetry(app, "Product Service", SERVICE_VERSION)
 
 # Get instruments
 meter = instruments["meter"]
@@ -196,4 +196,4 @@ async def add_product_to_stock(request: Request):
 if __name__ == '__main__':
     init_db()
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=5001)
+    uvicorn.run(app, host="0.0.0.0", port=5001)

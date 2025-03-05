@@ -6,7 +6,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 PRODUCT_SERVICE_URL = os.environ.get('PRODUCT_SERVICE_URL', 'http://127.0.0.1:5001')
 CART_SERVICE_URL = os.environ.get('CART_SERVICE_URL', 'http://127.0.0.1:5002')
-USER_SERVICE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')  # [NEW]
+USER_SERVICE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')
 
 def run_product_ui():
     """ Product Service UI. 

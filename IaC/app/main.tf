@@ -1,7 +1,7 @@
 data "azuread_client_config" "current" {}
 
 data "azurerm_resource_group" "demo" {
-  name     = "${var.base_name}-rg"
+  name = "${var.base_name}-rg"
 }
 
 data "azurerm_container_registry" "demo" {
@@ -20,7 +20,7 @@ data "azurerm_kusto_database" "otel" {
   cluster_name        = data.azurerm_kusto_cluster.demo.name
 }
 
-data "azurerm_container_app_environment" "demo" {
-  name                = "${var.base_name}-app-environment"
+data "azurerm_kubernetes_cluster" "demo" {
+  name                = "${var.base_name}-aks"
   resource_group_name = data.azurerm_resource_group.demo.name
 }

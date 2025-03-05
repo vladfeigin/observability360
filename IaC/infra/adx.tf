@@ -5,7 +5,7 @@ resource "azurerm_kusto_cluster" "demo" {
 
   sku {
     name     = var.adx_sku
-    capacity = 1
+    capacity = 2
   }
 }
 
