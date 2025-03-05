@@ -3,8 +3,23 @@ import sqlite3
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 import uvicorn
+from online_store.otel.otel import configure_telemetry
+
+SERVICE_VERSION = "1.0.0"
 
 app = FastAPI()
+instruments = configure_telemetry(app, "Cart Service", SERVICE_VERSION)
+
+# Get instruments
+meter = instruments["meter"]
+tracer = instruments["tracer"]
+# Create metrics instruments
+request_counter = meter.create_counter(
+    name="cart_service_http_requests_total",
+    description="Total number of HTTP requests to the cart service",
+    unit="1"
+)
+
 DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 print(f"DB=={DATABASE}")
 
@@ -78,33 +93,41 @@ async def add_cart_item(request: Request):
     RemoveProductFromStock will attempt to decrease the product's stock by the required quantity.
     If the product doesn't have the required quantity in stock, it returns an error.
     """
+    request_counter.add(1, attributes={"route": "/cart", "method": "POST" })
+    
     data = await request.json()
     user_id = data.get('userId')
     product_id = data.get('productId')
     product_name = data.get('productName')
-    try:
-        quantity = int(data.get('quantity'))
-    except (TypeError, ValueError):
-        raise HTTPException(status_code=400, detail="Invalid quantity provided")
     
-    if not all([user_id, product_id, quantity]):
-        raise HTTPException(status_code=400, detail="Missing required fields")
+    with tracer.start_as_current_span("add_cart_item") as span:
+        #add custom attributes to the span
+        span.set_attribute("user.id", user_id)
+        span.set_attribute("product.id", product_id)
+        span.set_attribute("product.name", product_name)    
+        try:
+            quantity = int(data.get('quantity'))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid quantity provided")
+    
+        if not all([user_id, product_id, quantity]):
+            raise HTTPException(status_code=400, detail="Missing required fields")
 
-    conn = sqlite3.connect(DATABASE)
-    try:
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO cart_items (user_id, product_id, product_name, quantity)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, product_id, product_name, quantity))
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to add item to cart: {str(e)}")
-    finally:
-        conn.close()
+        conn = sqlite3.connect(DATABASE)
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO cart_items (user_id, product_id, product_name, quantity)
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, product_id, product_name, quantity))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to add item to cart: {str(e)}")
+        finally:
+            conn.close()
 
-    return JSONResponse(content={'message': 'Cart item added successfully'}, status_code=201)
+        return JSONResponse(content={'message': 'Cart item added successfully'}, status_code=201)
 
 @app.put("/cart/{item_id}")
 async def update_cart_item(item_id: int, request: Request):
@@ -114,21 +137,23 @@ async def update_cart_item(item_id: int, request: Request):
     """
     data = await request.json()
     quantity = data.get('quantity')
-    if quantity is None:
-        raise HTTPException(status_code=400, detail="Missing quantity field")
+    
+    with tracer.start_as_current_span("update_cart_item") as span:
+        if quantity is None:
+            raise HTTPException(status_code=400, detail="Missing quantity field")
 
-    conn = sqlite3.connect(DATABASE)
-    try:
-        cursor = conn.cursor()
-        cursor.execute('UPDATE cart_items SET quantity = ? WHERE id = ?', (quantity, item_id))
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to update cart item: {str(e)}")
-    finally:
-        conn.close()
+        conn = sqlite3.connect(DATABASE)
+        try:
+            cursor = conn.cursor()
+            cursor.execute('UPDATE cart_items SET quantity = ? WHERE id = ?', (quantity, item_id))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to update cart item: {str(e)}")
+        finally:
+            conn.close()
 
-    return JSONResponse(content={'message': 'Cart item updated successfully'}, status_code=200)
+        return JSONResponse(content={'message': 'Cart item updated successfully'}, status_code=200)
 
 @app.delete("/cart/{item_id}")
 def delete_cart_item(item_id: int):
@@ -136,12 +161,16 @@ def delete_cart_item(item_id: int):
     DeleteCartItem API.
     Deletes a cart item by its ID.
     """
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM cart_items WHERE id = ?', (item_id,))
-    conn.commit()
-    conn.close()
-    return JSONResponse(content={'message': 'Cart item deleted successfully'}, status_code=200)
+    with tracer.start_as_current_span("delete_cart_item") as span:
+        span.set_attribute("item.id", item_id)
+        #TODO add try except block + rollback
+
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM cart_items WHERE id = ?', (item_id,))
+        conn.commit()
+        conn.close()
+        return JSONResponse(content={'message': 'Cart item deleted successfully'}, status_code=200)
 
 if __name__ == '__main__':
     init_db()  # Ensure the database and table are set up before running the service

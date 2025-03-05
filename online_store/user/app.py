@@ -11,7 +11,7 @@ from online_store.otel.otel import configure_telemetry
 SERVICE_VERSION = "1.0.0"
 
 app = FastAPI()
-instruments = configure_telemetry(app, "user service", SERVICE_VERSION)
+instruments = configure_telemetry(app, "User Service", SERVICE_VERSION)
 
 # Get instruments
 meter = instruments["meter"]
