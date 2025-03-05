@@ -1,6 +1,6 @@
 
 # otel.py - Dedicated instrumentation module
-
+from functools import wraps
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION
 from opentelemetry.sdk.trace import TracerProvider
@@ -43,7 +43,8 @@ def configure_telemetry(app, service_name:str, service_version:str, deoployment_
     metrics.set_meter_provider(meter_provider)
 
     # Auto-instrument FastAPI
-    FastAPIInstrumentor.instrument_app(app)
+    if app:
+        FastAPIInstrumentor.instrument_app(app)
     # Auto-instrument SQLite3
     SQLite3Instrumentor().instrument()
     # Auto-instrument requests
@@ -54,3 +55,17 @@ def configure_telemetry(app, service_name:str, service_version:str, deoployment_
         "meter": metrics.get_meter(__name__),
         "tracer": trace.get_tracer(__name__)
     }
+    
+def trace_span(span_name, tracer):
+    """A decorator to trace function execution with a span."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Start a span with the given name
+            with tracer.start_as_current_span(span_name) as span:
+                # (Optional) add attributes to the span
+                span.set_attribute("function.name", func.__name__)
+                # Execute the original function
+                return func(*args, **kwargs)
+        return wrapper
+    return decorator

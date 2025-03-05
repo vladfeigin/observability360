@@ -3,11 +3,19 @@ import streamlit as st
 import requests
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
+from online_store.otel.otel import configure_telemetry, trace_span
+
+SERVICE_VERSION = "1.0.0"
+instruments = configure_telemetry(None, "Product UI", SERVICE_VERSION)
+
+# Get instruments
+tracer = instruments["tracer"]
 
 PRODUCT_SERVICE_URL = os.environ.get('PRODUCT_SERVICE_URL', 'http://127.0.0.1:5001')
 CART_SERVICE_URL = os.environ.get('CART_SERVICE_URL', 'http://127.0.0.1:5002')
 USER_SERVICE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')
 
+@trace_span("run_product_ui", tracer)
 def run_product_ui():
     """ Product Service UI. 
     This UI allows users to add products and list products.

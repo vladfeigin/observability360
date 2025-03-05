@@ -2,6 +2,13 @@ import os
 import streamlit as st
 import requests
 import pandas as pd
+from online_store.otel.otel import configure_telemetry, trace_span
+
+SERVICE_VERSION = "1.0.0"
+instruments = configure_telemetry(None, "Cart UI", SERVICE_VERSION)
+
+# Get instruments
+tracer = instruments["tracer"]
 
 # Service URLs from environment variables (with defaults)
 CART_SERVICE_URL = os.environ.get("CART_SERVICE_URL", "http://127.0.0.1:5002")
@@ -9,6 +16,7 @@ USER_SERVICE_URL = os.environ.get("USER_SERVICE_URL", "http://127.0.0.1:5000")
 PRODUCT_SERVICE_URL = os.environ.get("PRODUCT_SERVICE_URL", "http://127.0.0.1:5001")
 ORDER_SERVICE_URL = os.environ.get("ORDER_SERVICE_URL", "http://127.0.0.1:5003")
 
+@trace_span("run_cart_ui", tracer)
 def run_cart_ui():
     st.title("Cart Service")
 
