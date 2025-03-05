@@ -9,3 +9,4 @@ opentelemetry-instrumentation-sqlite3==0.45b0
 fastapi==0.110.0
 uvicorn==0.29.0
 opentelemetry-instrumentation-fastapi
+opentelemetry.instrumentation.requests
