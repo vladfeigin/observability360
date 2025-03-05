@@ -11,6 +11,10 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.sqlite3 import SQLite3Instrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+
+
+
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
@@ -42,6 +46,8 @@ def configure_telemetry(app, service_name:str, service_version:str, deoployment_
     FastAPIInstrumentor.instrument_app(app)
     # Auto-instrument SQLite3
     SQLite3Instrumentor().instrument()
+    # Auto-instrument requests
+    RequestsInstrumentor().instrument()
 
     # Return instruments for manual instrumentation
     return {

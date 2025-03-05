@@ -10,3 +10,4 @@ opentelemetry-sdk==1.24.0
 opentelemetry-exporter-otlp-proto-grpc==1.24.0
 opentelemetry-instrumentation-logging==0.45b0
 opentelemetry-instrumentation-fastapi==0.45b0
+opentelemetry.instrumentation.requests
