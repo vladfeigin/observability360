@@ -2,11 +2,17 @@ import os
 import streamlit as st
 import requests
 import pandas as pd
+from online_store.otel.otel import configure_telemetry, trace_span
+
+SERVICE_VERSION = "1.0.0"
+instruments = configure_telemetry(None, "User UI", SERVICE_VERSION)
+
+# Get instruments
+tracer = instruments["tracer"]
 
 # Use environment variable with a fallback default (adjust port as needed)
 BASE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')
-
-
+@trace_span("run_user_ui", tracer)
 def run_user_ui():
     
     st.header("User Service")

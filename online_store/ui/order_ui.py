@@ -2,12 +2,20 @@ import os
 import streamlit as st
 import requests
 import pandas as pd
+from online_store.otel.otel import configure_telemetry, trace_span
+
+SERVICE_VERSION = "1.0.0"
+instruments = configure_telemetry(None, "Order UI", SERVICE_VERSION)
+
+# Get instruments
+tracer = instruments["tracer"]
 
 # Order Service URL (default to port 5003)
 ORDER_SERVICE_URL = os.environ.get("ORDER_SERVICE_URL", "http://127.0.0.1:5003")
 # [NEW] User Service URL (default to port 5000)
 USER_SERVICE_URL = os.environ.get("USER_SERVICE_URL", "http://127.0.0.1:5000")
 
+@trace_span("run_order_ui", tracer)
 def run_order_ui():
     st.title("Order Service")
     st.subheader("List My Orders")

@@ -1,4 +1,13 @@
 # thi is central ui for the online store
+import os
+import sys
+
+# Get the directory of the current file: online_store/ui/
+current_dir = os.path.dirname(__file__)
+# Go two levels up to reach the project root (observability360)
+project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from dotenv import load_dotenv
 import streamlit as st
@@ -11,7 +20,6 @@ load_dotenv()
 
 st.set_page_config(page_title="Online Store UI", layout="wide")
 st.title("Observability Demo.")
-
 
 svg_logo = """
 <svg width="300" height="150" viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
