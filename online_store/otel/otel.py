@@ -1,4 +1,3 @@
-# otel.py - Dedicated instrumentation module
 from functools import wraps
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION
@@ -15,7 +14,7 @@ from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
-# Module-level flag to avoid duplicate configuration
+# Module-level flag to avoid duplicate instrumentation configuration
 _telemetry_configured = False
 
 def configure_telemetry(app, service_name: str, service_version: str, deployment_env: str = "demo"):
