@@ -10,13 +10,14 @@ resource "docker_image" "online_store_ui" {
   keep_locally = false
 
   build {
-    context  = "${path.cwd}/${local.online_store_directory_path}"
+    context    = "${path.cwd}/${local.online_store_directory_path}"
     dockerfile = "${local.online_store_ui_directory_name}/Dockerfile"
-    platform = "linux/amd64"
+    platform   = "linux/amd64"
   }
 
   triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.online_store_ui_directory_path}/*") : filesha1(f)]))
+    dir_sha1      = sha1(join("", [for f in fileset(path.cwd, "${local.online_store_ui_directory_path}/*") : filesha1(f)]))
+    dir_sha1_otel = sha1(join("", [for f in fileset(path.cwd, "${local.opentelemetry_collector_directory_path}/*") : filesha1(f)]))
   }
 }
 
@@ -25,7 +26,8 @@ resource "docker_registry_image" "online_store_ui" {
   keep_remotely = true
 
   triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.online_store_ui_directory_path}/*") : filesha1(f)]))
+    dir_sha1      = sha1(join("", [for f in fileset(path.cwd, "${local.online_store_ui_directory_path}/*") : filesha1(f)]))
+    dir_sha1_otel = sha1(join("", [for f in fileset(path.cwd, "${local.opentelemetry_collector_directory_path}/*") : filesha1(f)]))
   }
 }
 
@@ -73,7 +75,7 @@ resource "kubernetes_deployment" "online_store_ui" {
           }
 
           env {
-            name = "OTEL_EXPORTER_OTLP_ENDPOINT"
+            name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
             value = "http://${kubernetes_service.otel_collector.metadata[0].name}.${kubernetes_namespace.opentelemtry.metadata[0].name}.svc.cluster.local:4317"
           }
 

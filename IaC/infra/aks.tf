@@ -144,23 +144,23 @@ resource "azurerm_role_assignment" "acrpull_role" {
 }
 
 # AGIC Identity
- resource "azurerm_role_assignment" "reader" {
-   scope                = azurerm_resource_group.demo.id
-   role_definition_name = "Reader"
-   principal_id         = azurerm_kubernetes_cluster.demo.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
- }
+resource "azurerm_role_assignment" "reader" {
+  scope                = azurerm_resource_group.demo.id
+  role_definition_name = "Reader"
+  principal_id         = azurerm_kubernetes_cluster.demo.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
+}
 
- resource "azurerm_role_assignment" "network_contributor" {
-   scope                = azurerm_virtual_network.demo.id
-   role_definition_name = "Network Contributor"
-   principal_id         = azurerm_kubernetes_cluster.demo.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
- }
+resource "azurerm_role_assignment" "network_contributor" {
+  scope                = azurerm_virtual_network.demo.id
+  role_definition_name = "Network Contributor"
+  principal_id         = azurerm_kubernetes_cluster.demo.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
+}
 
- resource "azurerm_role_assignment" "conributor" {
-   scope                = azurerm_application_gateway.aks.id
-   role_definition_name = "Contributor"
-   principal_id         = azurerm_kubernetes_cluster.demo.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
- }
+resource "azurerm_role_assignment" "conributor" {
+  scope                = azurerm_application_gateway.aks.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_kubernetes_cluster.demo.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
+}
 
 # AKS Node Pool
 resource "azurerm_kubernetes_cluster_node_pool" "workloads" {

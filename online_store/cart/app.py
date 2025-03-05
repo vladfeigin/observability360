@@ -174,4 +174,4 @@ def delete_cart_item(item_id: int):
 
 if __name__ == '__main__':
     init_db()  # Ensure the database and table are set up before running the service
-    uvicorn.run(app, host="127.0.0.1", port=5002)
+    uvicorn.run(app, host="0.0.0.0", port=5002)

@@ -1,7 +1,7 @@
 locals {
   online_store_namespace_name = "online-store"
 
-  online_store_directory_path = "../../online_store"
+  online_store_directory_path            = "../../online_store"
   online_store_docker_images_name_prefix = "${var.base_name}-online-store"
 
   order_service_url   = "http://order.${local.online_store_namespace_name}.svc.cluster.local"
@@ -38,7 +38,7 @@ resource "kubernetes_storage_class" "azurefile" {
 
 resource "kubernetes_persistent_volume_claim" "online_store_db" {
   metadata {
-    name = "online-store-db-pvc"
+    name      = "online-store-db-pvc"
     namespace = kubernetes_namespace.online_store.metadata[0].name
   }
   spec {

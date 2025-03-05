@@ -13,7 +13,7 @@ resource "azurerm_virtual_network" "demo" {
   location            = var.region
   resource_group_name = azurerm_resource_group.demo.name
   address_space       = [var.virtual_network_address_prefix]
-  
+
 }
 
 # AKS Subnet
