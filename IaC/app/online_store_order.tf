@@ -17,7 +17,7 @@ resource "docker_image" "online_store_order" {
 
   triggers = {
     dir_sha1      = sha1(join("", [for f in fileset(path.cwd, "${local.online_store_order_directory_path}/*") : filesha1(f)]))
-    dir_sha1_otel = sha1(join("", [for f in fileset(path.cwd, "${local.opentelemetry_collector_directory_path}/*") : filesha1(f)]))
+    dir_sha1_otel = sha1(join("", [for f in fileset(path.cwd, "${local.online_store_otel_directory_path}/*") : filesha1(f)]))
   }
 }
 
@@ -27,7 +27,7 @@ resource "docker_registry_image" "online_store_order" {
 
   triggers = {
     dir_sha1      = sha1(join("", [for f in fileset(path.cwd, "${local.online_store_order_directory_path}/*") : filesha1(f)]))
-    dir_sha1_otel = sha1(join("", [for f in fileset(path.cwd, "${local.opentelemetry_collector_directory_path}/*") : filesha1(f)]))
+    dir_sha1_otel = sha1(join("", [for f in fileset(path.cwd, "${local.online_store_otel_directory_path}/*") : filesha1(f)]))
   }
 }
 
@@ -99,6 +99,7 @@ resource "kubernetes_deployment" "online_store_order" {
       }
     }
   }
+  depends_on = [docker_registry_image.online_store_order]
 }
 
 resource "kubernetes_service" "online_store_order" {

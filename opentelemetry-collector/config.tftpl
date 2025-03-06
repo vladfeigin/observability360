@@ -9,8 +9,6 @@ receivers:
           allowed_origins:
             - http://*
             - https://*
-processors:
-  batch:
 exporters:
   debug:
     verbosity: detailed
@@ -28,13 +26,13 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: []
       exporters: [azuredataexplorer, debug]
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: []
       exporters: [azuredataexplorer, debug]
     logs:
       receivers: [otlp]
-      processors: [batch]
+      processors: []
       exporters: [azuredataexplorer, debug]

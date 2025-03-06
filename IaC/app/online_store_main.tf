@@ -3,6 +3,7 @@ locals {
 
   online_store_directory_path            = "../../online_store"
   online_store_docker_images_name_prefix = "${var.base_name}-online-store"
+  online_store_otel_directory_path       = "../../online_store/otel"
 
   order_service_url   = "http://order.${local.online_store_namespace_name}.svc.cluster.local"
   user_service_url    = "http://user.${local.online_store_namespace_name}.svc.cluster.local"
