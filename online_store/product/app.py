@@ -12,6 +12,8 @@ instruments = configure_telemetry(app, "Product Service", SERVICE_VERSION)
 # Get instruments
 meter = instruments["meter"]
 tracer = instruments["tracer"]
+logger = instruments["logger"]
+
 # Create metrics instruments
 request_counter = meter.create_counter(
     name="product_http_requests_total",
@@ -91,7 +93,8 @@ async def add_product(request: Request):
 
         if not all([product_id, name, number_items_in_stock, price]):
             raise HTTPException(status_code=400, detail="Missing required fields")
-
+        
+        logger.info(f"Adding product: {product_id}, {name}, {description}, {number_items_in_stock}, {price}")
         conn = sqlite3.connect(DATABASE)
         try:
             cursor = conn.cursor()
@@ -123,6 +126,8 @@ async def remove_product_from_stock(request: Request):
 
         if not product_name or required_qty is None:
             raise HTTPException(status_code=400, detail="Missing required fields: productName and required_qty")
+        
+        logger.info(f"Removing {required_qty} items from {product_name}")
 
         try:
             required_qty = int(required_qty)
@@ -147,6 +152,7 @@ async def remove_product_from_stock(request: Request):
             raise HTTPException(status_code=400, detail="The required quantity is not in stock")
 
         new_stock = current_stock - required_qty
+        # TODO -wrap this in a transaction in try/except block
         cursor.execute('UPDATE products SET number_items_in_stock = ? WHERE name = ?', (new_stock, product_name))
         conn.commit()
         conn.close()
@@ -168,6 +174,7 @@ async def add_product_to_stock(request: Request):
         if not product_name or added_qty is None:
             raise HTTPException(status_code=400, detail="Missing required fields: productName and added_qty")
 
+        logger.info(f"Adding {added_qty} items to {product_name}")
         try:
             added_qty = int(added_qty)
             if added_qty <= 0:
