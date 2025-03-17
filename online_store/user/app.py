@@ -16,6 +16,8 @@ instruments = configure_telemetry(app, "User Service", SERVICE_VERSION)
 # Get instruments
 meter = instruments["meter"]
 tracer = instruments["tracer"]
+logger = instruments["logger"]
+
 # Create metrics instruments
 request_counter = meter.create_counter(
     name="http_requests_total",
@@ -75,6 +77,7 @@ def add_user(user: AddUserRequest):
         span.set_attribute("user.last_name", user.lastName)
         span.set_attribute("user.user_alias", user.userAlias)
         
+        logger.info(f"Adding user: {user.firstName} {user.lastName} with alias {user.userAlias}")
         conn = sqlite3.connect(DATABASE)
         try:
             cursor = conn.cursor()
@@ -128,6 +131,8 @@ def remove_user(user: RemoveUserRequest):
     with tracer.start_as_current_span("remove_user") as span:
         span.set_attribute("user.first_name", user.firstName)
         span.set_attribute("user.last_name", user.lastName)
+        logger.info(f"Removing user: {user.firstName} {user.lastName}")
+        
         conn = sqlite3.connect(DATABASE)
         changes = 0
         try:
@@ -162,6 +167,8 @@ def update_user(user: UpdateUserRequest):
         span.set_attribute("user.first_name", user.firstName)
         span.set_attribute("user.last_name", user.lastName)
         span.set_attribute("user.user_alias", user.userAlias)
+        
+        logger.info(f"Updating user: {user.id} {user.firstName} {user.lastName} with alias {user.userAlias}")
         conn = sqlite3.connect(DATABASE)
         try:    
             cursor = conn.cursor()

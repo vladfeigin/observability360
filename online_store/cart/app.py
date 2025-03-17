@@ -13,6 +13,8 @@ instruments = configure_telemetry(app, "Cart Service", SERVICE_VERSION)
 # Get instruments
 meter = instruments["meter"]
 tracer = instruments["tracer"]
+logger = instruments["logger"]
+
 # Create metrics instruments
 request_counter = meter.create_counter(
     name="cart_service_http_requests_total",
@@ -105,6 +107,7 @@ async def add_cart_item(request: Request):
         span.set_attribute("user.id", user_id)
         span.set_attribute("product.id", product_id)
         span.set_attribute("product.name", product_name)    
+        logger.info(f"Adding item to cart: {user_id}, {product_id}, {product_name}")
         try:
             quantity = int(data.get('quantity'))
         except (TypeError, ValueError):
@@ -141,7 +144,8 @@ async def update_cart_item(item_id: int, request: Request):
     with tracer.start_as_current_span("update_cart_item") as span:
         if quantity is None:
             raise HTTPException(status_code=400, detail="Missing quantity field")
-
+        
+        logger.info(f"Updating item in cart: {item_id}, {quantity}")
         conn = sqlite3.connect(DATABASE)
         try:
             cursor = conn.cursor()
@@ -164,7 +168,7 @@ def delete_cart_item(item_id: int):
     with tracer.start_as_current_span("delete_cart_item") as span:
         span.set_attribute("item.id", item_id)
         #TODO add try except block + rollback
-
+        logger.info(f"Deleting item from cart: {item_id}")
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
         cursor.execute('DELETE FROM cart_items WHERE id = ?', (item_id,))

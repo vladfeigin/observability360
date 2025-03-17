@@ -31,7 +31,8 @@ def configure_telemetry(app, service_name: str, service_version: str, deployment
         # Return existing instruments if already configured
         return {
             "meter": metrics.get_meter(__name__),
-            "tracer": trace.get_tracer(__name__)
+            "tracer": trace.get_tracer(__name__),
+            "logger": logging.getLogger(__name__)
         }
 
     # Configure resource

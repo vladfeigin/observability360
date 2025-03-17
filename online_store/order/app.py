@@ -17,6 +17,8 @@ instruments = configure_telemetry(app, "Order Service", SERVICE_VERSION)
 # Get instruments
 meter = instruments["meter"]
 tracer = instruments["tracer"]
+logger = instruments["logger"]
+
 # Create metrics instruments
 request_counter = meter.create_counter(
     name="order_service_http_requests_total",
@@ -123,7 +125,7 @@ def create_order(order_req: OrderRequest):
         user_id = order_req.userId
         if not user_id:
             raise HTTPException(status_code=400, detail="User ID is required")
-
+        logger.info(f"Creating order for user: {user_id}")
     # Retrieve the cart items for this user from the Cart Service.
         cart_response = requests.get(
             f"{CART_SERVICE_URL}/cart", params={"userId": user_id})
