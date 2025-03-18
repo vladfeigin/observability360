@@ -1,4 +1,6 @@
+import logging
 from functools import wraps
+import atexit
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION
 from opentelemetry.sdk.trace import TracerProvider
@@ -10,6 +12,12 @@ from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExp
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.sqlite3 import SQLite3Instrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+
 
 from dotenv import load_dotenv
 load_dotenv(override=True)
@@ -23,7 +31,8 @@ def configure_telemetry(app, service_name: str, service_version: str, deployment
         # Return existing instruments if already configured
         return {
             "meter": metrics.get_meter(__name__),
-            "tracer": trace.get_tracer(__name__)
+            "tracer": trace.get_tracer(__name__),
+            "logger": logging.getLogger(__name__)
         }
 
     # Configure resource
@@ -48,21 +57,36 @@ def configure_telemetry(app, service_name: str, service_version: str, deployment
         ]
     )
     metrics.set_meter_provider(meter_provider)
-
+    
+    # Configure logging
+    logger_provider = LoggerProvider(resource=resource)
+    set_logger_provider(logger_provider)
+  
+    log_exporter = OTLPLogExporter()
+    log_processor = BatchLogRecordProcessor(log_exporter)
+    logger_provider.add_log_record_processor(log_processor)
+    
+    logging_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
+    app_logger = logging.getLogger("online_store_logger")
+    app_logger.addHandler(logging_handler)
+    #app_logger.setLevel(logging.INFO)
+    
     # Auto-instrumentation
     if app:
         FastAPIInstrumentor.instrument_app(app)
     SQLite3Instrumentor().instrument()
     RequestsInstrumentor().instrument()
+    LoggingInstrumentor().instrument(set_logging_format=True)
 
     _telemetry_configured = True
 
     # Return instruments for manual instrumentation
     return {
         "meter": metrics.get_meter(__name__),
-        "tracer": trace.get_tracer(__name__)
+        "tracer": trace.get_tracer(__name__),
+        "logger": logging.getLogger(__name__)
     }
-    
+         
 def trace_span(span_name, tracer):
     """A decorator to trace function execution with a span."""
     def decorator(func):
@@ -73,3 +97,10 @@ def trace_span(span_name, tracer):
                 return func(*args, **kwargs)
         return wrapper
     return decorator
+
+def shutdown_telemetry():
+    trace.get_tracer_provider().shutdown()
+    metrics.get_meter_provider().shutdown()
+    logging.getLogger().handlers.clear()
+
+atexit.register(shutdown_telemetry)
