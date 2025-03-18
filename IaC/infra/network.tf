@@ -42,3 +42,32 @@ resource "azurerm_subnet_network_security_group_association" "aks" {
   subnet_id                 = azurerm_subnet.aks.id
   network_security_group_id = azurerm_network_security_group.aks.id
 }
+
+
+# Monitoring
+data "azurerm_monitor_diagnostic_categories" "vnet" {
+  resource_id = azurerm_virtual_network.demo.id
+}
+
+resource "azurerm_monitor_diagnostic_setting" "vnet" {
+  name               = "vnet-diagnostic-setting"
+  target_resource_id = azurerm_virtual_network.demo.id
+
+  eventhub_name                  = azurerm_eventhub.diagnostic.name
+  eventhub_authorization_rule_id = azurerm_eventhub_namespace_authorization_rule.monitor.id
+
+  dynamic "enabled_log" {
+    for_each = data.azurerm_monitor_diagnostic_categories.vnet.log_category_types
+    content {
+      category = enabled_log.value
+    }
+  }
+
+  dynamic "metric" {
+    for_each = data.azurerm_monitor_diagnostic_categories.vnet.metrics
+    content {
+      category = metric.value
+      enabled  = true
+    }
+  }
+}
