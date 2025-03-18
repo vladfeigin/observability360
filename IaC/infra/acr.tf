@@ -11,11 +11,11 @@ data "azurerm_monitor_diagnostic_categories" "acr" {
   resource_id = azurerm_container_registry.demo.id
 }
 
-resource "azurerm_monitor_diagnostic_setting" "acr_logs" {
+resource "azurerm_monitor_diagnostic_setting" "acr" {
   name               = "acr-logs-diagnostic-setting"
   target_resource_id = azurerm_container_registry.demo.id
 
-  eventhub_name                  = azurerm_eventhub.logs.name
+  eventhub_name                  = azurerm_eventhub.diagnostic.name
   eventhub_authorization_rule_id = azurerm_eventhub_namespace_authorization_rule.monitor.id
 
   dynamic "enabled_log" {
@@ -24,18 +24,6 @@ resource "azurerm_monitor_diagnostic_setting" "acr_logs" {
       category = enabled_log.value
     }
   }
-
-  lifecycle {
-    ignore_changes = [metric]
-  }
-}
-
-resource "azurerm_monitor_diagnostic_setting" "acr_metrics" {
-  name               = "acr-metrics-diagnostic-setting"
-  target_resource_id = azurerm_container_registry.demo.id
-
-  eventhub_name                  = azurerm_eventhub.metrics.name
-  eventhub_authorization_rule_id = azurerm_eventhub_namespace_authorization_rule.monitor.id
 
   dynamic "metric" {
     for_each = data.azurerm_monitor_diagnostic_categories.acr.metrics
