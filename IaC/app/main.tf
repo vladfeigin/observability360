@@ -24,3 +24,35 @@ data "azurerm_kubernetes_cluster" "demo" {
   name                = "${var.base_name}-aks"
   resource_group_name = data.azurerm_resource_group.demo.name
 }
+
+data "azurerm_eventhub_namespace" "monitor" {
+  name                = "${var.base_name}-monitor-eventhub"
+  resource_group_name = data.azurerm_resource_group.demo.name
+}
+
+data "azurerm_eventhub" "diagnostic" {
+  name                = "DiagnosticData"
+  namespace_name      = data.azurerm_eventhub_namespace.monitor.name
+  resource_group_name = data.azurerm_resource_group.demo.name
+}
+
+data "azurerm_eventhub" "activitylog" {
+  name                = "insights-operational-logs"
+  namespace_name      = data.azurerm_eventhub_namespace.monitor.name
+  resource_group_name = data.azurerm_resource_group.demo.name
+  
+}
+
+data "azurerm_eventhub_consumer_group" "diagnostic_adx" {
+  name                = "adxpipeline"
+  namespace_name      = data.azurerm_eventhub_namespace.monitor.name
+  eventhub_name       = data.azurerm_eventhub.diagnostic.name
+  resource_group_name = data.azurerm_resource_group.demo.name
+}
+
+data "azurerm_eventhub_consumer_group" "activitylog_adx" {
+  name                = "adxpipeline"
+  namespace_name      = data.azurerm_eventhub_namespace.monitor.name
+  eventhub_name       = data.azurerm_eventhub.activitylog.name
+  resource_group_name = data.azurerm_resource_group.demo.name
+}
