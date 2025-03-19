@@ -2,7 +2,6 @@ import os
 import streamlit as st
 import requests
 import pandas as pd
-import logging
 
 from online_store.otel.otel import configure_telemetry, trace_span
 
@@ -11,7 +10,7 @@ instruments = configure_telemetry(None, "User UI", SERVICE_VERSION)
 
 # Get instruments
 tracer = instruments["tracer"]
-logger = logging.getLogger(__name__)
+logger = instruments["logger"]
 
 # Use environment variable with a fallback default (adjust port as needed)
 BASE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')

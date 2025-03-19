@@ -8,9 +8,9 @@ resource "azurerm_kusto_eventhub_data_connection" "diagnostic" {
   eventhub_id    = data.azurerm_eventhub.diagnostic.id
   consumer_group = data.azurerm_eventhub_consumer_group.diagnostic_adx.name
 
-  table_name        = "DiagnosticRawRecords"       
+  table_name        = "DiagnosticRawRecords"
   mapping_rule_name = "DiagnosticRawRecordsMapping"
-  data_format       = "JSON"             
+  data_format       = "JSON"
 }
 
 resource "azurerm_kusto_eventhub_data_connection" "activitylog" {
@@ -23,7 +23,7 @@ resource "azurerm_kusto_eventhub_data_connection" "activitylog" {
   eventhub_id    = data.azurerm_eventhub.activitylog.id
   consumer_group = data.azurerm_eventhub_consumer_group.activitylog_adx.name
 
-  table_name        = "ActivityLogsRawRecords"       
+  table_name        = "ActivityLogsRawRecords"
   mapping_rule_name = "ActivityLogsRawRecordsMapping"
-  data_format       = "JSON"             
+  data_format       = "JSON"
 }

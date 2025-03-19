@@ -40,7 +40,7 @@ data "azurerm_eventhub" "activitylog" {
   name                = "insights-operational-logs"
   namespace_name      = data.azurerm_eventhub_namespace.monitor.name
   resource_group_name = data.azurerm_resource_group.demo.name
-  
+
 }
 
 data "azurerm_eventhub_consumer_group" "diagnostic_adx" {

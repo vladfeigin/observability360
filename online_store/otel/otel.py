@@ -19,6 +19,7 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 
+
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
@@ -61,15 +62,14 @@ def configure_telemetry(app, service_name: str, service_version: str, deployment
     # Configure logging
     logger_provider = LoggerProvider(resource=resource)
     set_logger_provider(logger_provider)
-  
-    log_exporter = OTLPLogExporter()
+
+    log_exporter = OTLPLogExporter(insecure=True)
     log_processor = BatchLogRecordProcessor(log_exporter)
     logger_provider.add_log_record_processor(log_processor)
-    
+
     logging_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
-    app_logger = logging.getLogger("online_store_logger")
-    app_logger.addHandler(logging_handler)
-    app_logger.setLevel(logging.INFO)
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger().addHandler(logging_handler)
     
     # Auto-instrumentation
     if app:

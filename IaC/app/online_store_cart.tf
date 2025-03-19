@@ -79,6 +79,11 @@ resource "kubernetes_deployment" "online_store_cart" {
             value = "http://${kubernetes_service.otel_collector.metadata[0].name}.${kubernetes_namespace.opentelemtry.metadata[0].name}.svc.cluster.local:4317"
           }
 
+          env {
+            name = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
+            value = "true"
+          }
+
           volume_mount {
             name       = "online-store-db"
             mount_path = "/app/online_store/db"
