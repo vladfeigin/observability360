@@ -80,6 +80,11 @@ resource "kubernetes_deployment" "online_store_order" {
           }
 
           env {
+            name = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
+            value = "true"
+          }
+
+          env {
             name  = "CART_SERVICE_URL"
             value = "http://${kubernetes_service.online_store_cart.metadata[0].name}.${kubernetes_namespace.online_store.metadata[0].name}.svc.cluster.local"
           }

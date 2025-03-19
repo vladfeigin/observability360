@@ -70,7 +70,7 @@ resource "kubernetes_deployment" "otel_collector" {
   }
 
   spec {
-    replicas = 1
+    replicas = 3
 
     selector {
       match_labels = {
