@@ -2,7 +2,6 @@ import os
 import streamlit as st
 import requests
 import pandas as pd
-import logging
 
 from online_store.otel.otel import configure_telemetry, trace_span
 
