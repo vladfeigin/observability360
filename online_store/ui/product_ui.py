@@ -49,11 +49,17 @@ def run_product_ui():
                     "numberItemsInStock": number_items_in_stock,
                     "price": price
                 }
-                response = requests.post(f"{PRODUCT_SERVICE_URL}/products", json=payload, timeout=10)
-                if response.status_code == 201:
-                    st.success("Product added successfully!")
-                else:
-                    st.error("Error adding product: " + response.text)
+                with tracer.start_as_current_span("add_product_ui") as add_product_span:
+                    add_product_span.set_attribute("product_id", product_id)
+                    add_product_span.set_attribute("name", name)
+                    add_product_span.set_attribute("description", description)
+                    add_product_span.set_attribute("number_items_in_stock", number_items_in_stock)
+                    # Call Product Service to add product
+                    response = requests.post(f"{PRODUCT_SERVICE_URL}/products", json=payload, timeout=10)
+                    if response.status_code == 201:
+                        st.success("Product added successfully!")
+                    else:
+                        st.error("Error adding product: " + response.text)
 
     # ------------------- LIST PRODUCTS -------------------
     elif action == "List Products":
