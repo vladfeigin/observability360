@@ -2,6 +2,8 @@ import os
 import streamlit as st
 import requests
 import pandas as pd
+import logging
+
 from online_store.otel.otel import configure_telemetry, trace_span
 
 SERVICE_VERSION = "1.0.0"
@@ -9,6 +11,7 @@ instruments = configure_telemetry(None, "User UI", SERVICE_VERSION)
 
 # Get instruments
 tracer = instruments["tracer"]
+logger = logging.getLogger(__name__)
 
 # Use environment variable with a fallback default (adjust port as needed)
 BASE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')
@@ -23,6 +26,7 @@ def run_user_ui():
         return
     
     if action == "Add New User":
+        logger.info("User UI - Add New User.")
         with st.form("add_user_form"):
             first_name = st.text_input("First Name")
             last_name = st.text_input("Last Name")
@@ -43,6 +47,7 @@ def run_user_ui():
                     st.error("Error adding user: " + response.text)
 
     elif action == "User List":
+            logger.info("User UI - User List.")
         #if st.button("Refresh User List"):
             response = requests.get(f"{BASE_URL}/users", timeout=10)
             if response.status_code == 200:
@@ -56,6 +61,7 @@ def run_user_ui():
                 st.error("Error fetching users: " + response.text)
 
     elif action == "Remove User":
+        logger.info("User UI - Remove User.")
         with st.form("remove_user_form"):
             first_name = st.text_input("First Name")
             last_name = st.text_input("Last Name")
@@ -69,6 +75,7 @@ def run_user_ui():
                     st.error("Error removing user: " + response.text)
 
     elif action == "Update User":
+        logger.info("User UI - Update User.")
         with st.form("update_user_form"):
             user_id = st.text_input("User ID")
             first_name = st.text_input("New First Name")

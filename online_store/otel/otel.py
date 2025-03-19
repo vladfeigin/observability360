@@ -69,7 +69,7 @@ def configure_telemetry(app, service_name: str, service_version: str, deployment
     logging_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
     app_logger = logging.getLogger("online_store_logger")
     app_logger.addHandler(logging_handler)
-    #app_logger.setLevel(logging.INFO)
+    app_logger.setLevel(logging.INFO)
     
     # Auto-instrumentation
     if app:

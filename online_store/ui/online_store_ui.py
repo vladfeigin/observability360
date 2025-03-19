@@ -1,6 +1,9 @@
 # thi is central ui for the online store
 import os
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Get the directory of the current file: online_store/ui/
 current_dir = os.path.dirname(__file__)
@@ -44,6 +47,7 @@ st.markdown(svg_logo, unsafe_allow_html=True)
 # Sidebar navigation: select a service section
 service = st.sidebar.radio("Select Service", 
                            ["Home", "User Service", "Product Service", "Cart Service", "Order Service", ])
+
 
 if service == "Home":
     st.header("Welcome to the Online Store!")

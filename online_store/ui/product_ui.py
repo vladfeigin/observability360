@@ -1,9 +1,12 @@
 import os
+import logging
 import streamlit as st
 import requests
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 from online_store.otel.otel import configure_telemetry, trace_span
+
+logger = logging.getLogger(__name__)
 
 SERVICE_VERSION = "1.0.0"
 instruments = configure_telemetry(None, "Product UI", SERVICE_VERSION)
@@ -21,7 +24,7 @@ def run_product_ui():
     This UI allows users to add products and list products.
     It also allows users to add products to the cart.
     """
-    
+    logger.info("Product UI - run_product_ui.")
     st.header("Product Service")
 
     action = st.selectbox(
@@ -32,6 +35,7 @@ def run_product_ui():
 
     # ------------------- ADD PRODUCT -------------------
     if action == "Add Product":
+        logger.info("Product UI - Add Product.")
         st.subheader("Add a New Product")
         with st.form("add_product_form"):
             product_id = st.text_input("Product ID")
@@ -60,11 +64,14 @@ def run_product_ui():
                         st.success("Product added successfully!")
                     else:
                         st.error("Error adding product: " + response.text)
+                        logger.error("Error adding product: " + response.text)
 
     # ------------------- LIST PRODUCTS -------------------
     elif action == "List Products":
+        logger.info("Product UI - List Product.")
         st.subheader("List and Select Products")
 
+        logger.info("Fetching products from Product Service.") 
         # Fetch products from the Product service
         response = requests.get(f"{PRODUCT_SERVICE_URL}/products", timeout=10)
         if response.status_code == 200:
@@ -113,6 +120,7 @@ def run_product_ui():
                         user_response = requests.get(f"{USER_SERVICE_URL}/users", timeout=10)
                         if user_response.status_code != 200:
                             st.error("Error fetching users: " + user_response.text)
+                            logger.error("Error fetching users: " + user_response.text)
                         else:
                             users_list = user_response.json()
                             if users_list:
@@ -123,9 +131,11 @@ def run_product_ui():
                                 user_id = selected_user.split(":")[0].strip()  # [CHANGED]
                             else:
                                 st.error("No users found.")
+                                logger.info("No users found.")
                                 return
                     except Exception as e:
                         st.error(f"Failed to retrieve users: {e}")
+                        logger.error(f"Failed to retrieve users: {e}")
                         return
 
                     # Show form to add selected product to cart
@@ -172,10 +182,13 @@ def run_product_ui():
                     st.info("No product selected. Select a row in the table above to add it to the cart.")
             else:
                 st.info("No products found.")
+                logger.info("No products found in the Product Service.")
         else:
             st.error("Error fetching products: " + response.text)
+            logger.error("Error fetching products: " + response.text)
 
 def main():
+    logger.info("Product UI - main.")
     run_product_ui()
 
 if __name__ == "__main__":
