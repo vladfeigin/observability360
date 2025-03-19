@@ -60,7 +60,7 @@ resource "kubernetes_config_map" "collector_config" {
     "config.yaml" = file(local_file.otel_collector_config.filename)
   }
 
-  depends_on = [ local_file.otel_collector_config ]
+  depends_on = [local_file.otel_collector_config]
 }
 
 resource "kubernetes_deployment" "otel_collector" {
@@ -70,7 +70,7 @@ resource "kubernetes_deployment" "otel_collector" {
   }
 
   spec {
-    replicas = 3
+    replicas = 1
 
     selector {
       match_labels = {
@@ -150,7 +150,7 @@ resource "kubernetes_service" "otel_collector" {
     }
 
     port {
-      name        = "http" # TODO: switch between the names
+      name        = "http"
       port        = 4318
       target_port = 4318
       protocol    = "TCP"

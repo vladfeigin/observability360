@@ -16,7 +16,6 @@ from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 
 from dotenv import load_dotenv
@@ -62,21 +61,18 @@ def configure_telemetry(app, service_name: str, service_version: str, deployment
     logger_provider = LoggerProvider(resource=resource)
     set_logger_provider(logger_provider)
   
-    log_exporter = OTLPLogExporter()
-    log_processor = BatchLogRecordProcessor(log_exporter)
-    logger_provider.add_log_record_processor(log_processor)
-    
+    log_exporter = OTLPLogExporter(insecure=True)
+    logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
     logging_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
-    app_logger = logging.getLogger("online_store_logger")
-    app_logger.addHandler(logging_handler)
-    app_logger.setLevel(logging.INFO)
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger().addHandler(logging_handler)
     
     # Auto-instrumentation
     if app:
         FastAPIInstrumentor.instrument_app(app)
     SQLite3Instrumentor().instrument()
     RequestsInstrumentor().instrument()
-    LoggingInstrumentor().instrument(set_logging_format=True)
+    # LoggingInstrumentor().instrument(set_logging_format=True)
 
     _telemetry_configured = True
 

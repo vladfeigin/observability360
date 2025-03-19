@@ -1,0 +1,27 @@
+[SERVICE]
+    Flush                1
+    Log_level            info
+
+[INPUT]
+    Name tail
+    Path /var/log/containers/*.log
+    Tag kube.*
+    Mem_Buf_Limit 1MB
+    Skip_Long_Lines On
+    Refresh_Interval 10
+
+[OUTPUT]
+    Name                 opentelemetry
+    Match                *
+    Host                 ${otel_collector_service_name}.${otel_collector_namespace_name}.svc.cluster.local
+    Port                 4318
+    Logs_uri             /v1/logs
+    Log_response_payload True
+    Tls                  Off
+    Tls.verify           Off
+    logs_body_key $message
+    logs_severity_text_message_key loglevel
+    logs_severity_number_message_key lognum
+    # add user-defined labels
+    add_label            app fluent-bit
+    add_label            color blue
