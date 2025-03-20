@@ -17,6 +17,88 @@
     Skip_Long_Lines   On
     Refresh_Interval  10
 
+[INPUT]
+    Name systemd
+    Tag host.*
+    Systemd_Filter _SYSTEMD_UNIT=kubelet.service
+    Read_From_Tail On
+
+[INPUT]
+    Name kubernetes_events
+    Tag kubernetes.events.*
+    Kube_URL            https://kubernetes.default.svc:443
+    Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+
+[FILTER]
+    Name         nest
+    Alias        events_filter_1
+    Match        kubernetes.events.*
+    Operation    lift
+    Nested_under involvedObject
+    Add_prefix   involvedObject_
+
+[FILTER]
+    Name         nest
+    Alias        events_filter_2
+    Match        kubernetes.events.*
+    Operation    lift
+    Nested_under source
+    Add_prefix   source_
+
+[FILTER]
+    Name         nest
+    Alias        events_filter_3
+    Match        kubernetes.events.*
+    Operation    lift
+    Nested_under metadata
+    Add_prefix   metadata_
+
+[FILTER]
+    Name      modify
+    Alias     events_filter_4
+    Match     kubernetes.events.*
+    Condition Key_does_not_exist source_host
+    Add       source_host        ""
+
+[FILTER]
+    Name      modify
+    Alias     events_filter_5
+    Match     kubernetes.events.*
+    Add       Cluster                    ${aks_name}
+    Add       Region                     ${region_name}
+    Add       Environment                ${environment_name}
+    Rename    metadata_creationTimestamp CreationTimestamp
+    Rename    source_component           SourceComponent
+    Rename    source_host                SourceComputer
+    Rename    reportingComponent         ReportingComponent
+    Rename    reportingInstance          ReportingComputer
+    Rename    involvedObject_kind        Kind
+    Rename    involvedObject_apiVersion  ApiVersion
+    Rename    involvedObject_name        Name
+    Rename    involvedObject_namespace   Namespace
+    Rename    count                      Count
+    Rename    action                     Action
+    Rename    reason                     Reason
+    Rename    message                    Message
+    Rename    type                       KubeEventType
+    Rename    firstTimestamp             FirstSeen
+    Rename    lastTimestamp              LastSeen
+    Remove    metadata
+    Remove    involvedObject
+    Remove    source
+    Remove    eventTime
+    Remove    involvedObject_resourceVersion
+    Remove    involvedObject_uid
+    Remove    involvedObject_fieldPath
+    Remove    involvedObject_labels
+    Remove    involvedObject_annotations
+    Remove    metadata_name
+    Remove    metadata_namespace
+    Remove    metadata_uid
+    Remove    metadata_resourceVersion
+    Remove    metadata_managedFields
+
 [FILTER]
     Name                kubernetes
     Match               kube.*
@@ -32,7 +114,21 @@
 [FILTER]
     Name              grep
     Match             kube.*
-    Regex             $kubernetes['namespace_name'] online-store
+    Regex             $kubernetes['namespace_name'] (online-store|kube-system)
+
+[FILTER]
+    Name          nest
+    Match         kube.*
+    Operation     lift
+    Nested_under  kubernetes
+    Add_prefix    kubernetes_
+
+[FILTER]
+    Name          nest
+    Match         kube.*
+    Operation     lift
+    Nested_under  kubernetes_labels
+    Add_prefix    kubernetes_labels_
 
 [OUTPUT]
     Name                 opentelemetry
@@ -40,6 +136,7 @@
     Host                 ${otel_collector_service_name}.${otel_collector_namespace_name}.svc.cluster.local
     Port                 4318
     Logs_uri             /v1/logs
+    Metrics_uri          /v1/metrics
     Log_response_payload True
     Tls                  Off
     Tls.verify           Off

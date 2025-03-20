@@ -53,7 +53,7 @@ resource "docker_image" "grafana" {
   }
 
   triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.grafana_directory_path}/*") : filesha1(f)]))
+    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.grafana_directory_path}/**") : filesha1(f)]))
   }
 
   depends_on = [local_file.adx_datasource]
@@ -64,7 +64,7 @@ resource "docker_registry_image" "grafana" {
   keep_remotely = true
 
   triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.grafana_directory_path}/*") : filesha1(f)]))
+    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "${local.grafana_directory_path}/**") : filesha1(f)]))
   }
   depends_on = [docker_image.grafana]
 }

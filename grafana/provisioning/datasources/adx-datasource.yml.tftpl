@@ -4,6 +4,7 @@ datasources:
     type: grafana-azure-data-explorer-datasource
     access: proxy
     url: ${adx_fqdn}
+    uid: "OBS360DataSource"
     jsonData:
       defaultDatabase: ${adx_database}
       clientId: ${grafana_client_id}
