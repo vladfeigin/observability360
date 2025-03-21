@@ -9,6 +9,7 @@ instruments = configure_telemetry(None, "Cart UI", SERVICE_VERSION)
 
 # Get instruments
 tracer = instruments["tracer"]
+logger = instruments["logger"]
 
 # Service URLs from environment variables (with defaults)
 CART_SERVICE_URL = os.environ.get("CART_SERVICE_URL", "http://127.0.0.1:5002")
@@ -20,11 +21,11 @@ ORDER_SERVICE_URL = os.environ.get("ORDER_SERVICE_URL", "http://127.0.0.1:5003")
 def run_cart_ui():
     st.title("Cart Service")
 
-    # Two main actions: List Cart Items and Add Cart Item.
+    # Two main actions: List Cart Items (and implicitly Add Cart Item is available in a form)
     action = st.selectbox("Select Action", [
         "Select Action...",
-        "List Cart Items",
-        #"Add Cart Item" - there is a bug that cart list persists in the page ...
+        "List Cart Items"
+        # "Add Cart Item" is omitted due to known UI persistence bug.
     ], index=0)
 
     if action == "List Cart Items":
@@ -44,6 +45,7 @@ def run_cart_ui():
             selected_user = st.selectbox("Select User", user_options)  # [ADDED]
             user_id = selected_user.split(":")[0].strip()  # [ADDED]
         except Exception as e:
+            logger.error(f"Error retrieving users: {e}")
             st.error(f"Failed to retrieve users: {e}")
             return
 
@@ -52,13 +54,13 @@ def run_cart_ui():
 
         # --- Retrieve cart items for this user ---
         params = {"userId": user_id}  # [CHANGED]
-        cart_response = requests.get(f"{CART_SERVICE_URL}/cart", params=params)
+        cart_response = requests.get(f"{CART_SERVICE_URL}/cart", params=params, timeout=10)
         if cart_response.status_code != 200:
+            logger.error(f"Error fetching cart items for user ID {user_id}: {cart_response.text}")
             st.error("Error fetching cart items: " + cart_response.text)
             return
         items = cart_response.json()
         # [CHANGED] Use the user’s full name in the header if available.
-        # Try to locate the user details from our fetched users_list.
         user_detail = next((u for u in users_list if str(u.get("id")) == user_id), {})
         full_name = f"{user_detail.get('firstName', 'Unknown')} {user_detail.get('lastName', '')}"
         st.markdown(f"### Cart Items for {full_name}")
@@ -111,58 +113,56 @@ def run_cart_ui():
                     cart_item_id = full_df.iloc[idx]["id"]
                 except IndexError:
                     st.error("Row index out of range. Please do not add new rows.")
+                    logger.error("Row index out of range. Please do not add new rows.")
                     continue
 
-                # If Delete is checked, update product stock then delete the cart item.
+                # [CHANGED] If Delete is checked, update product stock and then delete the cart item.
                 if edited_row["Delete"]:
-                    payload_stock = {
+                    # When deleting, add the quantity back to the product stock.
+                    update_payload = {
                         "productName": edited_row["productName"],
-                        "added_qty": int(edited_row["quantity"])
+                        "qty_change": int(edited_row["quantity"])  # positive value increases stock
                     }
-                    r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/add_stock",
-                                            json=payload_stock, timeout=10)
+                    r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/update_stock",
+                                            json=update_payload, timeout=10)
                     if r_stock.status_code != 200:
                         error_msg = r_stock.json().get("error", r_stock.text)
-                        st.error(f"Failed to add stock for product {edited_row['productName']}: {error_msg}")
+                        logger.error(f"Failed to update stock for product {edited_row['productName']}: {error_msg}")
+                        st.error(f"Failed to update stock for product {edited_row['productName']}: {error_msg}")
                         continue
+                    # Delete the cart item.
                     r = requests.delete(f"{CART_SERVICE_URL}/cart/{cart_item_id}", timeout=60)
                     if r.status_code != 200:
+                        logger.error(f"Failed to delete cart item with ID {cart_item_id}: {r.text}")
                         st.error(f"Failed to delete cart item with ID {cart_item_id}")
                         break
                     changes_done = True
 
-                # Otherwise, if the quantity has changed, update product stock accordingly.
+                # [CHANGED] Otherwise, if the quantity has changed, update product stock accordingly.
                 elif edited_row["quantity"] != original_df_display.iloc[idx]["quantity"]:
                     old_qty = int(original_df_display.iloc[idx]["quantity"])
                     new_qty = int(edited_row["quantity"])
                     diff = new_qty - old_qty
-
-                    if diff > 0:
-                        payload_stock = {
-                            "productName": edited_row["productName"],
-                            "required_qty": int(diff)
-                        }
-                        r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/remove_stock",
-                                                json=payload_stock, timeout=10)
-                        if r_stock.status_code != 200:
-                            error_msg = r_stock.json().get("error", r_stock.text)
-                            st.error(f"Failed to remove {diff} items from product {edited_row['productName']}: {error_msg}")
-                            break
-                    elif diff < 0:
-                        payload_stock = {
-                            "productName": edited_row["productName"],
-                            "added_qty": int(-diff)
-                        }
-                        r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/add_stock",
-                                                json=payload_stock, timeout=10)
-                        if r_stock.status_code != 200:
-                            error_msg = r_stock.json().get("error", r_stock.text)
-                            st.error(f"Failed to add {-diff} items back to product {edited_row['productName']}: {error_msg}")
-                            break
+                    # The change in product stock is the negative of the change in cart quantity.
+                    # If diff > 0, then more items have been added to the cart, so stock decreases.
+                    # If diff < 0, fewer items in cart means stock increases.
+                    update_payload = {
+                        "productName": edited_row["productName"],
+                        "qty_change": -diff
+                    }
+                    r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/update_stock",
+                                            json=update_payload, timeout=10)
+                    if r_stock.status_code != 200:
+                        error_msg = r_stock.json().get("error", r_stock.text)
+                        logger.error(f"Failed to update stock for product {edited_row['productName']}: {error_msg}")
+                        st.error(f"Failed to update stock for product {edited_row['productName']}: {error_msg}")
+                        break
+                    # Update the cart item quantity.
                     payload = {"quantity": new_qty}
                     r = requests.put(f"{CART_SERVICE_URL}/cart/{cart_item_id}",
                                      json=payload, timeout=60)
                     if r.status_code != 200:
+                        logger.error(f"Failed to update cart item with ID {cart_item_id}: {r.text}")
                         st.error(f"Failed to update cart item with ID {cart_item_id}")
                         break
                     changes_done = True
@@ -204,6 +204,7 @@ def run_cart_ui():
                     try:
                         error_msg = response.json().get("error", response.text)
                     except Exception:
+                        logger.error(f"Error creating order: {response.text}")
                         error_msg = response.text
                     st.error(f"Error creating order: {error_msg}")
 
@@ -221,6 +222,7 @@ def run_cart_ui():
             submitted = st.form_submit_button("Add to Cart")
             if submitted:
                 if not user_id or not product_id:
+                    logger.error("User ID or Product ID is empty.")
                     st.error("Please provide both User ID and Product ID.")
                 else:
                     payload = {
@@ -233,14 +235,15 @@ def run_cart_ui():
                         response = requests.post(f"{CART_SERVICE_URL}/cart", json=payload, timeout=60)
                         if response.status_code == 201:
                             # Update product stock by removing the quantity.
-                            payload_stock = {
+                            update_payload = {
                                 "productName": product_name,
-                                "required_qty": int(quantity)
+                                "qty_change": -quantity  # [CHANGED] Use unified parameter for stock update.
                             }
-                            r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/remove_stock",
-                                                    json=payload_stock, timeout=60)
+                            r_stock = requests.post(f"{PRODUCT_SERVICE_URL}/products/update_stock",
+                                                    json=update_payload, timeout=60)
                             if r_stock.status_code != 200:
                                 error_msg = r_stock.json().get("error", r_stock.text)
+                                logger.error(f"Failed to update stock for product {product_name}: {error_msg}")
                                 st.error(f"Error updating product stock: {error_msg}")
                             else:
                                 st.success("Cart item added successfully and product stock updated!")
@@ -248,9 +251,11 @@ def run_cart_ui():
                             try:
                                 error_msg = response.json().get("error", response.text)
                             except Exception:
+                                logger.error(f"Error adding cart item: {response.text}")
                                 error_msg = response.text
                             st.error(f"Error adding cart item: {error_msg}")
                     except Exception as e:
+                        logger.error(f"Error adding cart item: {str(e)}")
                         st.error(f"An error occurred: {str(e)}")
 
 def main():

@@ -1,9 +1,8 @@
-# thi is central ui for the online store
+# this is central ui for the online store
 import os
 import sys
-import logging
-
-logger = logging.getLogger(__name__)
+import streamlit as st
+from dotenv import load_dotenv
 
 # Get the directory of the current file: online_store/ui/
 current_dir = os.path.dirname(__file__)
@@ -11,15 +10,38 @@ current_dir = os.path.dirname(__file__)
 project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-
-from dotenv import load_dotenv
-import streamlit as st
-from user_ui import run_user_ui
-from product_ui import run_product_ui
-from cart_ui import run_cart_ui
+    
+from online_store.otel.otel import configure_telemetry
+from db_init import initialize_db
 from order_ui import run_order_ui
+from cart_ui import run_cart_ui
+from product_ui import run_product_ui
+from user_ui import run_user_ui
+
+
+
+
+
+# Import our DB initializer
+
+SERVICE_VERSION = "1.0.0"
+instruments = configure_telemetry(None, "Online Store UI", SERVICE_VERSION)
+
+# Get instruments
+tracer = instruments["tracer"]
+logger = instruments["logger"]
 
 load_dotenv()
+database_path = os.path.join(project_root, "online_store/db/online_store.db")
+sql_init_file = os.path.join(
+    project_root, "online_store/ui/populate_products.sql")
+logger.info(f"DB Path: {database_path}")
+logger.info(f"SQL Init File: {sql_init_file}")
+
+# Run the database initialization
+# TODO - Init on k8s cluster!!
+# initialize_db(database_path, sql_init_file)
+
 
 st.set_page_config(page_title="Online Store UI", layout="wide")
 st.title("Observability Demo.")
@@ -45,9 +67,8 @@ svg_logo = """
 st.markdown(svg_logo, unsafe_allow_html=True)
 
 # Sidebar navigation: select a service section
-service = st.sidebar.radio("Select Service", 
+service = st.sidebar.radio("Select Service",
                            ["Home", "User Service", "Product Service", "Cart Service", "Order Service", ])
-
 
 if service == "Home":
     st.header("Welcome to the Online Store!")
@@ -60,4 +81,3 @@ elif service == "Cart Service":
     run_cart_ui()
 elif service == "Order Service":
     run_order_ui()
-    
