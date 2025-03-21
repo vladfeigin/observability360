@@ -3,7 +3,7 @@ import sqlite3
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 import uvicorn
-from online_store.otel.otel import configure_telemetry
+from online_store.otel.otel import configure_telemetry, trace_span
 
 SERVICE_VERSION = "1.0.0"
 
@@ -25,6 +25,7 @@ request_counter = meter.create_counter(
 DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 print(f"DB=={DATABASE}")
 
+@trace_span("init_db for Cart Service", tracer)
 def init_db():
     """
     Initialize the SQLite database.
@@ -40,20 +41,26 @@ def init_db():
     if not os.path.exists(db_dir):
         raise Exception(f"Database directory {db_dir} does not exist. Try running the service from the project root folder.")
 
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS cart_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            product_id TEXT NOT NULL,
-            product_name TEXT NOT NULL,
-            quantity INTEGER NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        cursor.execute('''
+                CREATE TABLE IF NOT EXISTS cart_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                product_id TEXT NOT NULL,
+                product_name TEXT NOT NULL,
+                quantity INTEGER NOT NULL
+            )''')
+        conn.commit()
+    except sqlite3.Error as e:
+        conn.close()
+        logger.error("Error initializing database: %s", e)
+        raise HTTPException(status_code=500, detail="Cart database initialization failed") from e
+    finally:
+        conn.close()
 
+@trace_span("list_cart_items", tracer)
 @app.get("/cart")
 def list_cart_items(userId: str = None):
     """
@@ -126,6 +133,7 @@ async def add_cart_item(request: Request):
             conn.commit()
         except Exception as e:
             conn.rollback()
+            logger.error(f"Error adding item to cart: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to add item to cart: {str(e)}")
         finally:
             conn.close()
@@ -153,6 +161,7 @@ async def update_cart_item(item_id: int, request: Request):
             conn.commit()
         except Exception as e:
             conn.rollback()
+            logger.error(f"Error updating cart item: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to update cart item: {str(e)}")
         finally:
             conn.close()
@@ -167,13 +176,20 @@ def delete_cart_item(item_id: int):
     """
     with tracer.start_as_current_span("delete_cart_item") as span:
         span.set_attribute("item.id", item_id)
-        #TODO add try except block + rollback
+
         logger.info(f"Deleting item from cart: {item_id}")
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM cart_items WHERE id = ?', (item_id,))
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(DATABASE)
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM cart_items WHERE id = ?', (item_id,))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error deleting cart item: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to delete cart item: {str(e)}")
+        finally:
+            conn.close()
+            
         return JSONResponse(content={'message': 'Cart item deleted successfully'}, status_code=200)
 
 if __name__ == '__main__':
