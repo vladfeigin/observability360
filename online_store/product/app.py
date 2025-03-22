@@ -1,5 +1,7 @@
 import os
 import sqlite3
+import time
+import asyncio
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from online_store.otel.otel import configure_telemetry
@@ -21,10 +23,17 @@ request_counter = meter.create_counter(
     unit="1"
 )
 
+# Create a histogram to record request durations (in seconds)
+request_duration_histogram = meter.create_histogram(
+    name="http_request_product_ops_duration_seconds",
+    description="The duration of HTTP requests in seconds",
+    unit="s"
+)
+
 DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 print(f"DB=={DATABASE}")
 
-def init_db():
+async def init_db():
     """
     Initialize the SQLite database.
     Creates the 'products' table if it doesn't exist.
@@ -56,7 +65,7 @@ def init_db():
             logger.error("Error initializing database: %s", e)
 
 @app.get("/products")
-def list_products():
+async def list_products():
     """
     ListProducts API.
     Returns a list of products in JSON format.
@@ -124,7 +133,7 @@ async def add_product(request: Request):
 
         return JSONResponse(content={'message': 'Product added successfully'}, status_code=201)
 
-# [CHANGED/MERGED] New endpoint merging add and remove stock functionality
+
 @app.post("/products/update_stock", status_code=200)
 async def update_stock(request: Request):
     """
@@ -172,7 +181,7 @@ async def update_stock(request: Request):
             conn.commit()
         except Exception as e:
             conn.rollback()
-            logger.error(f"Error updating stock for {product_name}: {e}")
+            logger.error("Error updating stock for %s: %s", product_name, e, exc_info=True)
             raise HTTPException(status_code=500, detail=f"Failed to update product: {str(e)}")
         finally:
             conn.close()
@@ -187,19 +196,26 @@ async def delete_product(product_id: str):
     """
     with tracer.start_as_current_span("delete_product") as span:
         span.set_attribute("product.product_id", product_id)
-        logger.info(f"Deleting product: {product_id}")
+        logger.info("Deleting product: %s", product_id)
+        
+        # [SIMULATE FAILURE] Force a deletion failure if product_id is "FAIL_DELETE" for demo purposes
+        if product_id == "FAIL_DELETE":
+            logger.error("Deletion failure triggered for product_id: %s .", product_id)
+            span.set_attribute("product.deletion_failure", True)
+            raise HTTPException(status_code=500, detail="Deletion failure")
+        
         conn = sqlite3.connect(DATABASE)
         try:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM products WHERE product_id = ?", (product_id,))
             if cursor.rowcount == 0:
                 conn.close()
-                logger.error(f"Product {product_id} not found.")
-                raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
+                logger.error("Product %s not found.", product_id)
+                #raise HTTPException(status_code=404, detail="Product %s not found." % product_id)
             conn.commit()
         except Exception as e:
             conn.rollback()
-            logger.error(f"Error deleting product {product_id}: {e}")
+            logger.error("Error deleting product %s: %s", product_id, e, exc_info=True)
             raise HTTPException(status_code=500, detail=f"Failed to delete product: {str(e)}")
         finally:
             conn.close()
@@ -207,24 +223,42 @@ async def delete_product(product_id: str):
     
 @app.put("/products/{product_id}")
 async def update_product(request: Request, product_id: str):
+    
+    start_time = time.time()
     data = await request.json()
-    # Here, implement logic to update the product (e.g., update name, description, stock, price)
+    # Logic to update the product (e.g., update name, description, stock, price)
     # For example, if you're updating just the stock:
     new_stock = data.get("numberItemsInStock")
-    if new_stock is None:
-        raise HTTPException(status_code=400, detail="Missing required field: numberItemsInStock")
-    conn = sqlite3.connect(DATABASE)
-    try:
-        cursor = conn.cursor()
-        cursor.execute("UPDATE products SET number_items_in_stock = ? WHERE product_id = ?", (new_stock, product_id))
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Product not found")
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to update product: {str(e)}")
-    finally:
-        conn.close()
+    
+    with tracer.start_as_current_span("update_product_slow") as span:
+        span.set_attribute("product.product_id", product_id)
+        if new_stock is None:
+            logger.error("Missing required field: numberItemsInStock")
+            raise HTTPException(status_code=400, detail="Missing required field: numberItemsInStock")
+        
+        await asyncio.sleep(5)  # Simulate a long-running operation
+        conn = sqlite3.connect(DATABASE)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE products SET number_items_in_stock = ? WHERE product_id = ?", (new_stock, product_id))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Product not found")
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to update product: {str(e)}")
+        finally:
+            conn.close()
+        duration = time.time() - start_time
+        # Record the duration along with attributes
+        request_duration_histogram.record(duration, 
+            attributes={
+                "http.method": request.method,
+                "http.route": request.url.path,
+                "operation": "update_product"
+            })
+        span.set_attribute("product.update.duration", duration) 
+        
     return JSONResponse(content={'message': 'Product updated successfully'}, status_code=200)
 
 if __name__ == '__main__':

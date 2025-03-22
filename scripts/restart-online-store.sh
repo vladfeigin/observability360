@@ -1,5 +1,8 @@
 #!/bin/bash
+
 # Script to restart all deployments in the specified Kubernetes namespace
+# Before runnig this script, make sure you run this command:
+# terraform apply -auto-approve -var-file="../terraform.tfvars"
 
 NAMESPACE="online-store"
 
