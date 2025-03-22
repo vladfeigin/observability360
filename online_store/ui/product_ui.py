@@ -96,7 +96,7 @@ def run_product_ui():
                     height=300
                 )
 
-                # [FIXED AGAIN] Ensure selected_rows is a list
+                #  Ensure selected_rows is a list
                 selected_rows = grid_response.get("selected_rows")
                 if isinstance(selected_rows, pd.DataFrame):
                     if selected_rows.empty:
@@ -147,37 +147,36 @@ def run_product_ui():
                                     "productName": selected_product['name'],
                                     "quantity": quantity
                                 }
-                                with tracer.start_as_current_span("add_to_cart_ui") as add_to_cart_span:
-                                    add_to_cart_span.set_attribute("user_id", user_id)
-                                    add_to_cart_span.set_attribute("product_id", selected_product['productId'])
-                                    add_to_cart_span.set_attribute("product_name", selected_product['name'])
-                                    add_to_cart_span.set_attribute("quantity", quantity)
-                                    try:
-                                        with tracer.start_as_current_span("add_to_cart_ui_request"):
-                                            cart_response = requests.post(f"{CART_SERVICE_URL}/cart", json=cart_payload, timeout=10)
-                                            if cart_response.status_code == 201:
-                                                # [CHANGED] Use new unified stock update endpoint:
-                                                update_stock_payload = {
-                                                    "productName": selected_product['name'],
-                                                    "qty_change": -quantity   # Negative value to decrease stock
-                                                }
-                                                with tracer.start_as_current_span("update_stock_ui_request"):
-                                                    update_stock_response = requests.post(
-                                                        f"{PRODUCT_SERVICE_URL}/products/update_stock",
+                                try:
+                                    with tracer.start_as_current_span("add_to_cart_ui_request") as add_to_cart_span:
+                                        add_to_cart_span.set_attribute("user_id", user_id)
+                                        add_to_cart_span.set_attribute("product_id", selected_product['productId'])
+                                        add_to_cart_span.set_attribute("product_name", selected_product['name'])
+                                        add_to_cart_span.set_attribute("quantity", quantity)
+                                        cart_response = requests.post(f"{CART_SERVICE_URL}/cart", json=cart_payload, timeout=10)
+                                        if cart_response.status_code == 201:
+                                            # Use new unified stock update endpoint:
+                                            update_stock_payload = {
+                                                "productName": selected_product['name'],
+                                                "qty_change": -quantity   # Negative value to decrease stock
+                                            }
+                                            with tracer.start_as_current_span("update_product_stock_ui_request"):
+                                                update_stock_response = requests.post(
+                                                    f"{PRODUCT_SERVICE_URL}/products/update_stock",
                                                         json=update_stock_payload, timeout=10)
-                                                    if update_stock_response.status_code == 200:
-                                                        st.success("Product added to cart and stock updated successfully!")
-                                                    else:
-                                                        error_msg = update_stock_response.json().get("error", update_stock_response.text)
-                                                        st.error(f"Error updating stock: {error_msg}")
-                                                        logger.error("Error updating stock: %s", error_msg, exc_info=True)
-                                            else:
-                                                error_msg = cart_response.json().get("error", cart_response.text)
-                                                st.error(f"Error adding to cart: {error_msg}")
-                                                logger.error("Error adding to cart: %s", error_msg, exc_info=True)
-                                    except requests.exceptions.RequestException as e:
-                                                    logger.error("Failed to connect to Cart Service: %s", e, exc_info=True)
-                                                    st.error(f"Failed to connect to Cart Service: {e}")
+                                                if update_stock_response.status_code == 200:
+                                                    st.success("Product added to cart and stock updated successfully!")
+                                                else:
+                                                    error_msg = update_stock_response.json().get("error", update_stock_response.text)
+                                                    st.error(f"Error updating stock: {error_msg}")
+                                                    logger.error("Error updating stock: %s", error_msg, exc_info=True)
+                                        else:
+                                            error_msg = cart_response.json().get("error", cart_response.text)
+                                            st.error(f"Error adding to cart: {error_msg}")
+                                            logger.error("Error adding to cart: %s", error_msg, exc_info=True)
+                                except requests.exceptions.RequestException as e:
+                                        logger.error("Failed to connect to Cart Service: %s", e, exc_info=True)
+                                        st.error(f"Failed to connect to Cart Service: {e}")
             else:
                 st.info("No products found.")
                 logger.info("No products found in the Product Service.")
