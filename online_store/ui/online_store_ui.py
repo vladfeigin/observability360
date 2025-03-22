@@ -53,7 +53,7 @@ st.markdown("##### This observability demo showcases how to leverage the full po
 # ---------------------------------------------------------------------
 svg_logo_centered = """
 <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
-<svg width="600" height="300" viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
+<svg width="500" height="250" viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
   <!-- Eye shape -->
   <path d="M20,75 C80,10 220,10 280,75 C220,140 80,140 20,75 Z" 
         fill="#007ACC" stroke="#005A9E" stroke-width="2"/>
@@ -63,7 +63,7 @@ svg_logo_centered = """
   <polyline points="20,75 50,65 80,85 110,60 140,75 170,90 200,65 230,80 260,70 280,75" 
             stroke="#ffdd00" stroke-width="3" fill="none"/>
   <!-- Kusto Icon in the white circle -->
-  <g transform="translate(135,60)">
+  <g transform="translate(140,65)"> <!-- CHANGED: Adjusted translate values to keep icon centered -->
     <!-- Kusto Icon background: a blue circle -->
     <circle cx="15" cy="15" r="15" fill="#0078D4"/>
     <!-- White "K" centered in the icon -->

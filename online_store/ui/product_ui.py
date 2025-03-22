@@ -180,7 +180,9 @@ def run_product_ui():
                                                 "productName": selected_product['name'],
                                                 "qty_change": -quantity   # Negative value to decrease stock
                                             }
-                                            with tracer.start_as_current_span("update_stock_flow"):
+                                            with tracer.start_as_current_span("update_stock_flow") as update_stock_flow_span:
+                                                update_stock_flow_span.set_attribute("product_id", selected_product['productId'])
+                                                update_stock_flow_span.set_attribute("quantity_change", -quantity)
                                                 headers_stock = {}
                                                 propagate.inject(headers_stock)
                                                 update_stock_response = requests.post(
@@ -348,7 +350,8 @@ def run_product_ui():
                         with tracer.start_as_current_span("delete_products_flow"):
                             for product in selected_rows:
                                 product_id = product.get("productId")
-                                with tracer.start_as_current_span("delete_product_ui"):
+                                with tracer.start_as_current_span("delete_product_ui") as delete_product_span:
+                                    delete_product_span.set_attribute("product_id", product_id)
                                     headers = {}
                                     propagate.inject(headers)
                                     delete_response = requests.delete(

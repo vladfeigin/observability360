@@ -167,11 +167,14 @@ def run_cart_ui():
                         old_qty = int(original_df_display.iloc[idx]["quantity"])
                         new_qty = int(edited_row["quantity"])
                         diff = new_qty - old_qty
-                        with tracer.start_as_current_span("update_cart_item") as update_span:  # CHANGED
+                        with tracer.start_as_current_span("update_cart_item") as update_cart_item_span: 
+                           
                             update_payload = {
                                 "productName": edited_row["productName"],
                                 "qty_change": -diff
                             }
+                            update_cart_item_span.set_attribute("product_name", edited_row["productName"])
+                            update_cart_item_span.set_attribute("quantity_change", -diff)
                             headers = {}
                             propagate.inject(headers)
                             r_stock = requests.post(
@@ -223,7 +226,8 @@ def run_cart_ui():
                     payload = {"userId": st.session_state["cart_user_id"]}
 
                     # Child span for calling the Order Service
-                    with tracer.start_as_current_span("call_order_service") as call_order_span:  # CHANGED
+                    with tracer.start_as_current_span("call_order_service") as call_order_service_span:
+                        call_order_service_span.set_attribute("user_id", st.session_state["cart_user_id"])
                         response = requests.post(
                             f"{ORDER_SERVICE_URL}/orders",
                             json=payload,
@@ -236,13 +240,13 @@ def run_cart_ui():
                         st.success(f"Order created successfully! Order ID: {order_details.get('orderId')}")
 
                         # Child span for deleting cart items post-order
-                        with tracer.start_as_current_span("cleanup_cart_items") as cleanup_span:  # CHANGED
+                        with tracer.start_as_current_span("cleanup_cart_items") as cart_cleanup_span:
                             if "cart_df_full" in st.session_state:
                                 df_full = st.session_state["cart_df_full"]
                                 for idx, row in df_full.iterrows():
                                     cart_item_id = row["id"]
                                     headers = {}
-                                    propagate.inject(headers)  # CHANGED
+                                    propagate.inject(headers)  
                                     r_del = requests.delete(
                                         f"{CART_SERVICE_URL}/cart/{cart_item_id}",
                                         headers=headers,
@@ -259,7 +263,7 @@ def run_cart_ui():
                         try:
                             error_msg = response.json().get("error", response.text)
                         except Exception:
-                            logger.error(f"Error creating order: {response.text}")
+                            logger.error(f"Error creating order: {response.text}", exc_info=True)
                             error_msg = response.text
                         st.error(f"Error creating order: {error_msg}")
 
