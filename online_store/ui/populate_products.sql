@@ -65,3 +65,6 @@ VALUES ('PROD019', 'Smartwatch', 'Fitness tracking and notifications with a slee
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
 VALUES ('PROD020', 'Gaming Headset', 'Headset with surround sound and noise-cancelling mic', 20, 59.99);
+
+INSERT INTO products (product_id, name, description, number_items_in_stock, price)
+VALUES ('FAIL_DELETE', 'Display Samsung,27', 'Display Samsung, 27 inch', 20, 1222.00);

@@ -7,7 +7,7 @@ import requests
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from online_store.otel.otel import configure_telemetry
+from online_store.otel.otel import configure_telemetry, trace_span
 
 SERVICE_VERSION = "1.0.0"
 
@@ -32,6 +32,7 @@ DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 # Use environment variable to get Cart Service URL.
 CART_SERVICE_URL = os.environ.get("CART_SERVICE_URL", "http://127.0.0.1:5002")
 
+@trace_span("init_db for Order Service", tracer)
 def init_db():
     db_dir = os.path.dirname(DATABASE)
     if not os.path.exists(db_dir):
@@ -155,6 +156,7 @@ def create_order(order_req: OrderRequest):
         except Exception as e:
             conn.rollback()
             conn.close()
+            logger.error(f"Error creating order: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
         conn.close()
 

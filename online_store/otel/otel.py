@@ -24,9 +24,11 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 # Module-level flag to avoid duplicate instrumentation configuration
-_telemetry_configured = False
+#_telemetry_configured = False
 
 def configure_telemetry(app, service_name: str, service_version: str, deployment_env: str = "demo"):
+    
+    """ 
     global _telemetry_configured
     if _telemetry_configured:
         # Return existing instruments if already configured
@@ -35,7 +37,7 @@ def configure_telemetry(app, service_name: str, service_version: str, deployment
             "tracer": trace.get_tracer(__name__),
             "logger": logging.getLogger(__name__)
         }
-
+    """
     # Configure resource
     resource = Resource.create(attributes={
         SERVICE_NAME: service_name,

@@ -1,16 +1,16 @@
 import os
-import logging
 import streamlit as st
 import requests
 import pandas as pd
 from online_store.otel.otel import configure_telemetry, trace_span
 
-logger = logging.getLogger(__name__)
+
 SERVICE_VERSION = "1.0.0"
 instruments = configure_telemetry(None, "Order UI", SERVICE_VERSION)
 
-# Get instruments
+# Get instruments and logger
 tracer = instruments["tracer"]
+logger = instruments["logger"]
 
 # Order Service URL (default to port 5003)
 ORDER_SERVICE_URL = os.environ.get("ORDER_SERVICE_URL", "http://127.0.0.1:5003")
