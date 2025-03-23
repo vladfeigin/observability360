@@ -20,8 +20,8 @@ USER_SERVICE_URL = os.environ.get("USER_SERVICE_URL", "http://127.0.0.1:5000")
 @trace_span("run_order_ui", tracer)
 def run_order_ui():
     logger.info("Order UI - run_order_ui.")
-    st.title("Order Service")
-    st.subheader("List My Orders")
+    st.header("Order Service")
+    st.subheader("List My Orders", divider="blue")
 
     # [NEW] Fetch users from the User Service
     try:

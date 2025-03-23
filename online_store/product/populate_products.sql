@@ -7,64 +7,64 @@
 --   price REAL NOT NULL
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD001', 'Wireless Mouse', 'A sleek wireless mouse with ergonomic design', 50, 19.99);
+VALUES ('PROD001', 'Arc Reactor', 'Compact power core powering advanced suits', 5, 4999.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD002', 'Mechanical Keyboard', 'A durable mechanical keyboard with blue switches', 30, 49.99);
+VALUES ('PROD002', 'Repulsor Gauntlet', 'High-tech gauntlet providing repulsor blasts', 20, 299.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD003', '1080p Monitor', 'A 24-inch full HD monitor with slim bezels', 20, 129.99);
+VALUES ('PROD003', 'Iron Man Suit', 'Advanced exoskeleton suit with integrated AI for high performance', 3, 9999.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD004', 'USB-C Cable', '1-meter USB-C to USB-A cable', 100, 5.99);
+VALUES ('PROD004', 'Vibranium Shield', 'Nearly indestructible shield, signature item of Captain America', 10, 799.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD005', 'Gaming Chair', 'Ergonomic chair with lumbar support and adjustable armrests', 15, 199.99);
+VALUES ('PROD005', 'Mjolnir Replica', 'Decorative hammer inspired by Thor''s mighty Mjolnir', 15, 149.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD006', 'Noise-Cancelling Headphones', 'Over-ear headphones with active noise cancellation', 25, 89.99);
+VALUES ('PROD006', 'Lightning Gauntlet', 'Gauntlet designed to channel lightning energy, ideal for thunder warriors', 10, 399.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD007', 'Bluetooth Speaker', 'Portable speaker with long battery life', 40, 34.99);
+VALUES ('PROD007', 'Hulk Strength Protein', 'Special protein supplement to boost physical strength to gamma levels', 50, 39.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD008', 'Office Desk', 'Wooden desk with cable management ports', 10, 149.99);
+VALUES ('PROD008', 'Incredible DNA Serum', 'Serum to temporarily enhance physical attributes dramatically', 25, 199.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD009', 'Smartphone', 'Latest model with high-resolution display and 5G support', 12, 799.00);
+VALUES ('PROD009', 'Black Widow Tactic Kit', 'A collection of spy gadgets and tactical gear for covert missions', 30, 89.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD010', 'External Hard Drive', '1TB portable hard drive with USB 3.0', 35, 59.99);
+VALUES ('PROD010', 'Ant-Man Suit', 'Miniaturization suit for covert operations with precise control', 8, 2999.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD011', 'Wireless Earbuds', 'Compact earbuds with charging case and touch controls', 45, 29.99);
+VALUES ('PROD011', 'Quantum Realm Explorer', 'Device to explore the quantum realm for scientific breakthroughs', 5, 499.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD012', 'Laptop Backpack', 'Water-resistant backpack with padded compartments', 28, 39.99);
+VALUES ('PROD012', 'Stark Tech Drone', 'Autonomous drone equipped with advanced sensors and AI', 15, 499.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD013', 'Desk Lamp', 'LED lamp with adjustable brightness and color temperature', 22, 24.99);
+VALUES ('PROD013', 'Miniature Armor Unit', 'Compact repurposed suit unit for remote tasks and security', 20, 1999.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD014', 'Wireless Charger', 'Fast-charge stand for smartphones', 60, 15.99);
+VALUES ('PROD014', 'Cap''s Vintage Watch', 'A stylish vintage watch inspired by Captain America''s era', 25, 99.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD015', 'Portable SSD', '500GB solid-state drive with high-speed data transfer', 18, 79.99);
+VALUES ('PROD015', 'Thor''s Hammer Pendant', 'A wearable necklace replica of Mjolnir for everyday heroics', 40, 49.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD016', 'Webcam', '1080p webcam with built-in microphone', 25, 39.99);
+VALUES ('PROD016', 'Gamma Ray Detector', 'Portable device for measuring gamma radiation levels, ideal for Banner', 12, 149.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD017', 'Graphic Tablet', 'Pressure-sensitive drawing tablet with stylus', 12, 69.99);
+VALUES ('PROD017', 'Black Panther Suit', 'High-tech stealth suit made with advanced Wakandan technology', 6, 8999.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD018', '4K Monitor', '27-inch 4K UHD monitor with HDR support', 8, 299.99);
+VALUES ('PROD018', 'Falcon Wing Pack', 'Aerodynamic backpack designed for flight support and quick escapes', 18, 299.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD019', 'Smartwatch', 'Fitness tracking and notifications with a sleek design', 16, 149.99);
+VALUES ('PROD019', 'Vision Data Cube', 'Compact AI-powered data storage cube with integrated analytics', 22, 399.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('PROD020', 'Gaming Headset', 'Headset with surround sound and noise-cancelling mic', 20, 59.99);
+VALUES ('PROD020', 'Sling Ring', 'Mystical ring enabling interdimensional travel, inspired by Doctor Strange', 10, 199.99);
 
 INSERT INTO products (product_id, name, description, number_items_in_stock, price)
-VALUES ('FAIL_DELETE', 'Display Samsung,27', 'Display Samsung, 27 inch', 20, 1222.00);
+VALUES ('FAIL_DELETE', 'Thor Hummer', 'Huge Thor Hummer', 20, 1222.00);

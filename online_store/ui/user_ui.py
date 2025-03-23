@@ -17,7 +17,7 @@ BASE_URL = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:5000')
 
 @trace_span("run_user_ui", tracer)
 def run_user_ui():
-    st.header("User Service")
+    st.header("User Service", divider="blue")
     action = st.selectbox("Select Action", [
                           "Select...", "User List", "Add New User", "Update User", "Remove User", ], index=0)
     if action == "Select...":

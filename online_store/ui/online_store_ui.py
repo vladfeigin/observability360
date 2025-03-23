@@ -47,6 +47,7 @@ st.markdown("##### This observability demo showcases how to leverage the full po
     "The system integrates with Azure Data Explorer (Kusto), Jaeger, and Grafana, providing "
     "end-to-end visibility into user, product, cart, and order microservices in the online store."
 )
+st.subheader("",divider="blue")
 
 # ---------------------------------------------------------------------
 # Center and Enlarge the Eye SVG with the Kusto Icon in the Pupil
@@ -56,19 +57,23 @@ svg_logo_centered = """
 <svg width="500" height="250" viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
   <!-- Eye shape -->
   <path d="M20,75 C80,10 220,10 280,75 C220,140 80,140 20,75 Z" 
-        fill="#007ACC" stroke="#005A9E" stroke-width="2"/>
+        fill="#0000ff" stroke="#005A9E" stroke-width="2"/>
   <!-- Enlarged white circle (pupil) -->
-  <circle cx="150" cy="75" r="30" fill="#ffffff" />
+  <circle cx="150" cy="75" r="40" fill="#006400 />
   <!-- Extended pulse line spanning from left to right of the eye -->
-  <polyline points="20,75 50,65 80,85 110,60 140,75 170,90 200,65 230,80 260,70 280,75" 
-            stroke="#ffdd00" stroke-width="3" fill="none"/>
+  <polyline points="20,75 50,65 80,85 110,60 140,75 170,83 200,65 230,80 260,70 280,75" 
+            stroke="#ffdd00" stroke-width="2" fill="none"/>
+  <polyline points="25,80 45,75 90,75 100,55 135,65 175,85 205,55 235,70 265,75 280,75"
+            stroke="#00ff00" stroke-width="2" fill="none"/>       
+  <polyline points="30,85 50,80 95,85 120,65 145,85 185,95 215,75 240,85 270,75 280,75"
+            stroke="#ff0000" stroke-width="2" fill="none"/>       
   <!-- Kusto Icon in the white circle -->
   <g transform="translate(140,65)"> <!-- CHANGED: Adjusted translate values to keep icon centered -->
     <!-- Kusto Icon background: a blue circle -->
-    <circle cx="15" cy="15" r="15" fill="#0078D4"/>
+    <circle cx="12" cy="12" r="15" fill="#009900"/>
     <!-- White "K" centered in the icon -->
-    <text x="15" y="22" text-anchor="middle" alignment-baseline="middle" 
-          font-family="Arial" font-size="20" font-weight="bold" fill="#ffffff">
+    <text x="12" y="15" text-anchor="middle" alignment-baseline="middle" 
+          font-family="Arial" font-size="16" font-weight="bold" fill="#ffff00">
       K
     </text>
   </g>

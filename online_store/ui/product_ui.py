@@ -25,7 +25,7 @@ def run_product_ui():
     and add products to the cart.
     """
     logger.info("Product UI - run_product_ui.")
-    st.header("Product Service")
+    st.header("Product Service", divider="blue")
 
     action = st.selectbox(
         "Select Action",
