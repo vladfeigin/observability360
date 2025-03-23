@@ -33,7 +33,7 @@ request_duration_histogram = meter.create_histogram(
 DATABASE = os.path.join(os.getcwd(), 'online_store/db/online_store.db')
 print(f"DB=={DATABASE}")
 
-async def init_db():
+def init_db():
     """
     Initialize the SQLite database.
     Creates the 'products' table if it doesn't exist.

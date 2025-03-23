@@ -3,3 +3,4 @@
 .env
 *.env.local
 *.pyc
+*/.DS_Store

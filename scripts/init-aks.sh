@@ -27,3 +27,5 @@ kubectl delete deploy/online-store-product -n "$NAMESPACE"
 
 # Delete persistent volume claim
 kubectl delete pvc/online-store-db-pvc -n "$NAMESPACE"
+
+terraform apply -auto-approve -var-file="../terraform.tfvars"

@@ -164,7 +164,7 @@ def remove_user(user: RemoveUserRequest):
             conn.close()
 
         if changes == 0:
-            logger.error(f"No user found with name: {user.firstName} {user.lastName}")
+            logger.error(f"No user found with name: {user.firstName} {user.lastName}", exec_info=True) 
             raise HTTPException(status_code=404, detail="No user found with given firstName and lastName")
         else:
             return JSONResponse(content={'message': 'User removed successfully'})
