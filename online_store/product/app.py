@@ -36,18 +36,19 @@ print(f"DB=={DATABASE}")
 def init_db():
     """
     Initialize the SQLite database.
-    Creates the 'products' table if it doesn't exist.
+    Creates the 'products' table if it doesn't exist and populates it using the SQL script file.
     """
     logger.info("Initializing Product service database...")
     db_dir = os.path.dirname(DATABASE)
     if not os.path.exists(db_dir):
         logger.error(f"Database directory {db_dir} does not exist. Try running the service from the project root folder.")
         raise Exception(f"Database directory {db_dir} does not exist. Try running the service from the project root folder.")
-        
+    
     with tracer.start_as_current_span("init_product_db"):
         try:
             conn = sqlite3.connect(DATABASE)
             cursor = conn.cursor()
+            # Create the products table if it doesn't exist
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS products (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,10 +60,19 @@ def init_db():
                 )
             ''')
             conn.commit()
-            conn.close()
+            # Load the SQL script from 'populate_products.sql'
+            sql_file_path = os.path.join(os.path.dirname(__file__), 'populate_products.sql')
+            if not os.path.exists(sql_file_path):
+                logger.error(f"Init SQL script file {sql_file_path} does not exist.")
+                raise Exception(f"Init SQL script file {sql_file_path} does not exist.")
+            with open(sql_file_path, 'r') as file:
+                script_content = file.read()
+            cursor.executescript(script_content)
+            conn.commit()
         except sqlite3.Error as e:
-            conn.close()
             logger.error("Error initializing database: %s", e)
+        finally:
+            conn.close()
 
 @app.get("/products")
 async def list_products():
