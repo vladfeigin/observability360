@@ -63,8 +63,8 @@ def init_db():
             # Load the SQL script from 'populate_products.sql'
             sql_file_path = os.path.join(os.path.dirname(__file__), 'populate_products.sql')
             if not os.path.exists(sql_file_path):
-                logger.error(f"Init SQL script file {sql_file_path} does not exist.")
-                raise Exception(f"Init SQL script file {sql_file_path} does not exist.")
+                logger.error(f"Init SQL script file {sql_file_path} does not exist. The products table will not be initialized.")
+                #raise Exception(f"Init SQL script file {sql_file_path} does not exist.")
             with open(sql_file_path, 'r') as file:
                 script_content = file.read()
             cursor.executescript(script_content)
@@ -212,6 +212,7 @@ async def delete_product(product_id: str):
         if product_id == "FAIL_DELETE":
             logger.error("Deletion failure triggered for product_id: %s .", product_id)
             span.set_attribute("product.deletion_failure", True)
+
             raise HTTPException(status_code=500, detail="Deletion failure")
         
         conn = sqlite3.connect(DATABASE)

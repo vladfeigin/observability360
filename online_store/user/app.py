@@ -51,15 +51,15 @@ def init_db():
             # Load and execute the SQL script from 'populate_users.sql'
             sql_file_path = os.path.join(os.path.dirname(__file__), 'populate_users.sql')
             if not os.path.exists(sql_file_path):
-                logger.error("SQL init users file not found: %s", sql_file_path)
-                raise HTTPException(status_code=500, detail="SQL init users file not found")
+                logger.error("SQL init users file not found: %s.  The users table will not be initialized.", sql_file_path)
+                #raise HTTPException(status_code=500, detail="SQL init users file not found")
             with open(sql_file_path, 'r') as file:
                 script_content = file.read()
             cursor.executescript(script_content)
             conn.commit()
         except sqlite3.Error as e:
             logger.error("Error initializing database: %s", e)
-            raise HTTPException(status_code=500, detail="User database initialization failed") from e
+            #raise HTTPException(status_code=500, detail="User database initialization failed") from e
         finally:
             conn.close()
         
