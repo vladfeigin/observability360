@@ -20,7 +20,7 @@ ORDER_SERVICE_URL = os.environ.get("ORDER_SERVICE_URL", "http://127.0.0.1:5003")
 
 @trace_span("run_cart_ui", tracer)
 def run_cart_ui():
-    st.title("Cart Service")
+    st.header("Cart Service", divider="blue")
 
     # Two main actions: List Cart Items (and implicitly Add Cart Item is available in a form)
     action = st.selectbox("Select Action", [
