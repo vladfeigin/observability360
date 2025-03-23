@@ -23,22 +23,19 @@ from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
-# Module-level flag to avoid duplicate instrumentation configuration
-#_telemetry_configured = False
+# Module-level dictionary to avoid duplicate instrumentation configuration
+_telemetry_configured_resources = {}
+
 
 def configure_telemetry(app, service_name: str, service_version: str, deployment_env: str = "demo"):
     
-    """ 
-    global _telemetry_configured
-    if _telemetry_configured:
+    global _telemetry_configured_resources
+    
+    if service_name in _telemetry_configured_resources:
         # Return existing instruments if already configured
-        return {
-            "meter": metrics.get_meter(__name__),
-            "tracer": trace.get_tracer(__name__),
-            "logger": logging.getLogger(__name__)
-        }
-    """
-    # Configure resource
+        return _telemetry_configured_resources[service_name]
+    
+    # Configure resource with service attributes
     resource = Resource.create(attributes={
         SERVICE_NAME: service_name,
         SERVICE_VERSION: service_version,
@@ -80,15 +77,18 @@ def configure_telemetry(app, service_name: str, service_version: str, deployment
     RequestsInstrumentor().instrument()
     LoggingInstrumentor().instrument(set_logging_format=True)
 
-    _telemetry_configured = True
-
-    # Return instruments for manual instrumentation
-    return {
-        "meter": metrics.get_meter(__name__),
-        "tracer": trace.get_tracer(__name__),
-        "logger": logging.getLogger(__name__)
+    # Use a combined name for meter and tracer instead of __name__
+    identifier = f"{service_name}-{service_version}"
+    
+    _telemetry_configured_resources[service_name] = {
+        "meter": metrics.get_meter(identifier),
+        "tracer": trace.get_tracer(identifier),
+        "logger": logging.getLogger(identifier)
     }
-         
+    
+    return _telemetry_configured_resources[service_name]
+
+
 def trace_span(span_name, tracer):
     """A decorator to trace function execution with a span."""
     def decorator(func):
