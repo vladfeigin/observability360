@@ -1,6 +1,5 @@
 import os
 import sqlite3
-from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -39,18 +38,31 @@ def init_db():
             conn = sqlite3.connect(DATABASE)
             cursor = conn.cursor()
             cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                first_name TEXT NOT NULL,
-                last_name TEXT NOT NULL,
-                user_alias TEXT NOT NULL,
-                password TEXT NOT NULL)''')
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    first_name TEXT NOT NULL,
+                    last_name TEXT NOT NULL UNIQUE,
+                    user_alias TEXT NOT NULL,
+                    password TEXT NOT NULL
+                )
+            ''')
             conn.commit()
-            conn.close()
+            
+            # Load and execute the SQL script from 'populate_users.sql'
+            sql_file_path = os.path.join(os.path.dirname(__file__), 'populate_users.sql')
+            if not os.path.exists(sql_file_path):
+                logger.error("SQL init users file not found: %s", sql_file_path)
+                raise HTTPException(status_code=500, detail="SQL init users file not found")
+            with open(sql_file_path, 'r') as file:
+                script_content = file.read()
+            cursor.executescript(script_content)
+            conn.commit()
         except sqlite3.Error as e:
-            conn.close()
             logger.error("Error initializing database: %s", e)
             raise HTTPException(status_code=500, detail="User database initialization failed") from e
+        finally:
+            conn.close()
+        
         span.add_event("User service database initialized successfully.")
         logger.info("Database initialized successfully.")
         
