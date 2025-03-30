@@ -45,7 +45,7 @@ resource "azurerm_eventhub_namespace_authorization_rule" "monitor" {
 
 # Subscription level diagnostic setting for activity logs
 resource "azurerm_monitor_diagnostic_setting" "subscription_activitylogs" {
-  name               = "SubscriptionActivityLogs"
+  name               = "${var.base_name}-SubscriptionActivityLogs"
   target_resource_id = "/subscriptions/${var.subscription_id}"
 
   eventhub_name                  = azurerm_eventhub.activitylog.name
