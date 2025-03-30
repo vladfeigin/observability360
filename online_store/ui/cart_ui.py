@@ -23,11 +23,10 @@ def run_cart_ui():
     st.header("Cart Service", divider="blue")
 
     # Two main actions: List Cart Items (and implicitly Add Cart Item is available in a form)
-    action = st.selectbox("Select Action", [
+    action = st.selectbox("Select Cart Action", [
         "Select Action...",
-        "List Cart Items"
-        # "Add Cart Item" is omitted due to known UI persistence bug.
-    ], index=0)
+        "List Cart Items",
+        "Add Cart Item"], index=0)
 
     # ----------------------------------------------------------------
     # LIST CART ITEMS
@@ -271,7 +270,11 @@ def run_cart_ui():
     # ADD CART ITEM (Disabled by default in your code)
     # ----------------------------------------------------------------
     elif action == "Add Cart Item":
-        with tracer.start_as_current_span("add_cart_item_flow") as add_item_span:  # CHANGED
+        with tracer.start_as_current_span("add_cart_item_flow") as add_item_span:  
+            logger.error("Add Cart Item Action is not supported.")
+            st.error("Add Cart Item Action is not supported.")
+            raise Exception("Add Cart Item Action is not supported")
+        
             st.subheader("Add Cart Item")
             # Clear any existing cart session state.
             for key in list(st.session_state.keys()):

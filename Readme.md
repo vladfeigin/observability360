@@ -146,6 +146,22 @@ cd ../app
 terraform init
 terraform apply -auto-approve -var-file="../terraform.tfvars"
 ```
+Note: If you get an error: 
+
+`app folder :Error: Invalid function argument
+│   on opentelemetry-collector.tf line 60, in resource "kubernetes_config_map" "collector_config":
+│"config.yaml" = file(local_file.otel_collector_config.filename)
+`
+
+Run first this command:
+```sh
+terraform apply -auto-approve -var-file="../terraform.tfvars" -target=local_file.otel_collector_config
+```
+
+and after that run the command again:
+```sh
+terraform apply -auto-approve -var-file="../terraform.tfvars"
+```
 
 ### 3. Validate functionallity
 
