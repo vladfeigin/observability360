@@ -1592,7 +1592,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "kubernetes health",
+  "title": "Kubernetes Service health",
   "uid": "cehduxe657awwc",
   "version": 50,
   "weekStart": ""

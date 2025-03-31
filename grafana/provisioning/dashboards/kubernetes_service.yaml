@@ -4,11 +4,11 @@
 
 apiVersion: 1
 providers:
-  - name: 'Kubernetes Dashboards'
+  - name: 'Kubernetes Service Dashboards'
     orgId: 1
-    folder: 'kubernetes'
+    folder: 'kubernetes_service'
     type: file
     disableDeletion: true
     editable: true
     options:
-      path: /etc/grafana/provisioning/dashboards/kubernetes
+      path: /etc/grafana/provisioning/dashboards/kubernetes_service
