@@ -7,9 +7,18 @@ variable "base_name" {
   description = "The base name for the resources (will be used for prefix)."
 }
 
+variable "email" {
+  description = "The email address of the user who will be the owner of the resources."
+}
+
 variable "region" {
   description = "The region in which the resources will be created (example: swedencentral)."
   default     = "swedencentral"
+}
+
+variable "data_location" {
+  description = "The data location for the communication service."
+  default     = "Europe"
 }
 
 variable "adx_sku" {
