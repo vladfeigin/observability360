@@ -3,13 +3,13 @@ datasources:
   - name: Azure Data Explorer
     type: grafana-azure-data-explorer-datasource
     access: proxy
-    url: ${adx_fqdn}
+    url: ${kusto_fqdn}
     uid: "OBS360DataSource"
     jsonData:
-      defaultDatabase: ${adx_database}
+      defaultDatabase: ${kusto_database}
       clientId: ${grafana_client_id}
       tenantId: ${tenant_id}
-      clusterUrl: ${adx_fqdn}
+      clusterUrl: ${kusto_fqdn}
       dataConsistency: strongconsistency
     secureJsonData:
       clientSecret: ${grafana_client_secret}

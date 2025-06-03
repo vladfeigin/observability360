@@ -99,7 +99,10 @@ resource "kubernetes_deployment" "online_store_user" {
       }
     }
   }
-  depends_on = [docker_registry_image.online_store_user]
+  
+  lifecycle {
+    replace_triggered_by = [docker_registry_image.online_store_user]
+  }
 }
 
 resource "kubernetes_service" "online_store_user" {

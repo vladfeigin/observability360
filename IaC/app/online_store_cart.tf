@@ -100,7 +100,9 @@ resource "kubernetes_deployment" "online_store_cart" {
     }
   }
 
-  depends_on = [docker_registry_image.online_store_cart]
+  lifecycle {
+    replace_triggered_by = [docker_registry_image.online_store_cart]
+  }
 }
 
 resource "kubernetes_service" "online_store_cart" {

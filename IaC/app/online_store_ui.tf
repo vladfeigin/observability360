@@ -104,7 +104,10 @@ resource "kubernetes_deployment" "online_store_ui" {
       }
     }
   }
-  depends_on = [docker_registry_image.online_store_ui]
+  
+  lifecycle {
+    replace_triggered_by = [docker_registry_image.online_store_ui]
+  }
 }
 
 resource "kubernetes_service" "online_store_ui" {

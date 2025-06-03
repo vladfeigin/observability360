@@ -16,7 +16,7 @@ data "azurerm_kusto_cluster" "demo" {
   resource_group_name = data.azurerm_resource_group.demo.name
 }
 
-data "azurerm_kusto_database" "otel" {
+data "azurerm_kusto_database" "observability" {
   count = var.is_fabric ? 0 : 1
 
   name                = "observabilitydb"
@@ -40,24 +40,24 @@ data "azurerm_eventhub" "diagnostic" {
   resource_group_name = data.azurerm_resource_group.demo.name
 }
 
-data "azurerm_eventhub" "activitylog" {
-  name                = "insights-operational-logs"
+data "azurerm_eventhub" "operational" {
+  name                = "OperationalData"
   namespace_name      = data.azurerm_eventhub_namespace.monitor.name
   resource_group_name = data.azurerm_resource_group.demo.name
 
 }
 
-data "azurerm_eventhub_consumer_group" "diagnostic_adx" {
-  name                = "adxpipeline"
+data "azurerm_eventhub_consumer_group" "diagnostic" {
+  name                = "KustoConsumerGroup"
   namespace_name      = data.azurerm_eventhub_namespace.monitor.name
   eventhub_name       = data.azurerm_eventhub.diagnostic.name
   resource_group_name = data.azurerm_resource_group.demo.name
 }
 
-data "azurerm_eventhub_consumer_group" "activitylog_adx" {
-  name                = "adxpipeline"
+data "azurerm_eventhub_consumer_group" "operational" {
+  name                = "KustoConsumerGroup"
   namespace_name      = data.azurerm_eventhub_namespace.monitor.name
-  eventhub_name       = data.azurerm_eventhub.activitylog.name
+  eventhub_name       = data.azurerm_eventhub.operational.name
   resource_group_name = data.azurerm_resource_group.demo.name
 }
 

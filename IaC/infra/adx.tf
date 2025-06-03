@@ -11,7 +11,7 @@ resource "azurerm_kusto_cluster" "demo" {
   }
 }
 
-resource "azurerm_kusto_database" "otel" {
+resource "azurerm_kusto_database" "observability" {
   count = var.is_fabric ? 0 : 1
 
   name                = "observabilitydb"

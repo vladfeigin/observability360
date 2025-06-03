@@ -99,7 +99,10 @@ resource "kubernetes_deployment" "online_store_product" {
       }
     }
   }
-  depends_on = [docker_registry_image.online_store_product]
+  
+  lifecycle {
+    replace_triggered_by = [docker_registry_image.online_store_product]
+  }
 }
 
 resource "kubernetes_service" "online_store_product" {
