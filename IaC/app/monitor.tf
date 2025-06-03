@@ -17,7 +17,7 @@ resource "azurerm_kusto_eventhub_data_connection" "diagnostic" {
 
 resource "azurerm_kusto_eventhub_data_connection" "activitylog" {
   count = var.is_fabric ? 0 : 1
-  
+
   name                = "activityloh-eventhub-data-connection"
   resource_group_name = data.azurerm_resource_group.demo.name
   location            = var.region

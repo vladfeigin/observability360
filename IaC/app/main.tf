@@ -73,5 +73,4 @@ data "fabric_kql_database" "demo" {
 
   display_name = "${var.base_name}-kql-database"
   workspace_id = data.fabric_workspace.demo[0].id
-  
 }

@@ -80,7 +80,7 @@ resource "kubernetes_deployment" "online_store_user" {
           }
 
           env {
-            name = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
+            name  = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
             value = "true"
           }
 
