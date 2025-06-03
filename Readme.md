@@ -29,6 +29,7 @@ Create a file named ``terraform.tfvars`` with the following content:
 subscription_id = "<your_subscription_id>"
 base_name = "<base_name_prefix_for_the_created_resources>" 
 email = "<your_email_address>"
+is_fabric = "<Whether_to_use_fabric>" // (true/false)
 ```
 
 for base_name use only alphanumeric letters, make sure its no longer than 12 characters.

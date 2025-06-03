@@ -10,14 +10,18 @@ data "azurerm_container_registry" "demo" {
 }
 
 data "azurerm_kusto_cluster" "demo" {
+  count = var.is_fabric ? 0 : 1
+
   name                = "${var.base_name}-adx"
   resource_group_name = data.azurerm_resource_group.demo.name
 }
 
 data "azurerm_kusto_database" "otel" {
+  count = var.is_fabric ? 0 : 1
+
   name                = "openteldb"
   resource_group_name = data.azurerm_resource_group.demo.name
-  cluster_name        = data.azurerm_kusto_cluster.demo.name
+  cluster_name        = data.azurerm_kusto_cluster.demo[0].name
 }
 
 data "azurerm_kubernetes_cluster" "demo" {
@@ -55,4 +59,19 @@ data "azurerm_eventhub_consumer_group" "activitylog_adx" {
   namespace_name      = data.azurerm_eventhub_namespace.monitor.name
   eventhub_name       = data.azurerm_eventhub.activitylog.name
   resource_group_name = data.azurerm_resource_group.demo.name
+}
+
+data "fabric_workspace" "demo" {
+  count = var.is_fabric ? 1 : 0
+
+  display_name = "${var.base_name}-workspace"
+}
+
+
+data "fabric_kql_database" "demo" {
+  count = var.is_fabric ? 1 : 0
+
+  display_name = "${var.base_name}-kql-database"
+  workspace_id = data.fabric_workspace.demo[0].id
+  
 }

@@ -45,3 +45,15 @@ variable "adx_sku" {
   description = "Value of the sku for the Azure Data Explorer cluster."
   default     = "Standard_E2d_v4"
 }
+
+variable "is_fabric" {
+  description = "Boolean to indicate if the Storage backend are being created as part of Azure Fabric (EventHouse)."
+  type        = bool
+  default     = false
+}
+
+variable "fabric_capacity_sku" {
+  description = "The SKU of the Azure Fabric capacity."
+  type        = string
+  default     = "F4"
+}

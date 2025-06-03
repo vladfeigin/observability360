@@ -25,10 +25,12 @@ resource "azuread_service_principal" "grafana_to_adx" {
 }
 
 resource "azurerm_kusto_database_principal_assignment" "grafana_to_adx" {
+  count = var.is_fabric ? 0 : 1
+
   name                = "GrafanaQueryToADX"
   resource_group_name = data.azurerm_resource_group.demo.name
-  cluster_name        = data.azurerm_kusto_cluster.demo.name
-  database_name       = data.azurerm_kusto_database.otel.name
+  cluster_name        = data.azurerm_kusto_cluster.demo[0].name
+  database_name       = data.azurerm_kusto_database.otel[0].name
 
   tenant_id      = data.azuread_client_config.current.tenant_id
   principal_id   = azuread_application.grafana_to_adx.client_id
@@ -51,8 +53,8 @@ resource "azuread_service_principal_password" "grafana_to_adx" {
 resource "local_file" "adx_datasource" {
   filename = "${path.cwd}/${local.grafana_directory_path}/provisioning/datasources/adx-datasource.yml"
   content = templatefile("${path.cwd}/${local.grafana_directory_path}/provisioning/datasources/adx-datasource.yml.tftpl", {
-    adx_fqdn              = data.azurerm_kusto_cluster.demo.uri
-    adx_database          = data.azurerm_kusto_database.otel.name
+    adx_fqdn              = var.is_fabric ? data.fabric_kql_database.demo[0].properties.query_service_uri : data.azurerm_kusto_cluster.demo[0].uri
+    adx_database          = var.is_fabric ? "${var.base_name}-kql-database" : data.azurerm_kusto_database.otel[0].name
     grafana_client_id     = azuread_application.grafana_to_adx.client_id
     grafana_client_secret = azuread_service_principal_password.grafana_to_adx.value
     tenant_id             = data.azuread_client_config.current.tenant_id

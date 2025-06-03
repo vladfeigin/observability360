@@ -29,10 +29,12 @@ resource "azuread_service_principal_password" "jaeger" {
 }
 
 resource "azurerm_kusto_database_principal_assignment" "jaeger" {
+  count = var.is_fabric ? 0 : 1
+
   name                = "KustoJaegerPrincipalAssignment"
   resource_group_name = data.azurerm_resource_group.demo.name
-  cluster_name        = data.azurerm_kusto_cluster.demo.name
-  database_name       = data.azurerm_kusto_database.otel.name
+  cluster_name        = data.azurerm_kusto_cluster.demo[0].name
+  database_name       = data.azurerm_kusto_database.otel[0].name
 
   tenant_id      = data.azuread_client_config.current.tenant_id
   principal_id   = azuread_application.jaeger.client_id
@@ -46,8 +48,8 @@ resource "azurerm_kusto_database_principal_assignment" "jaeger" {
 resource "local_file" "jaeger_kusto_config" {
   filename = "${path.cwd}/${local.jaeger_plugin_directory_path}/jaeger-kusto-config.json"
   content = templatefile("${path.cwd}/${local.jaeger_plugin_directory_path}/jaeger-kusto-config.json.tftpl", {
-    adx_cluster_uri = data.azurerm_kusto_cluster.demo.uri,
-    adx_database    = data.azurerm_kusto_database.otel.name,
+    adx_cluster_uri = var.is_fabric ? data.fabric_kql_database.demo[0].properties.query_service_uri : data.azurerm_kusto_cluster.demo[0].uri,
+    adx_database    = var.is_fabric ? "${var.base_name}-kql-database" : data.azurerm_kusto_database.otel[0].name,
     application_id  = azuread_service_principal.jaeger.client_id,
     application_key = azuread_service_principal_password.jaeger.value,
     tenant_id       = data.azuread_client_config.current.tenant_id

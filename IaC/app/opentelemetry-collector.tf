@@ -20,10 +20,12 @@ resource "azuread_service_principal_password" "otel" {
 }
 
 resource "azurerm_kusto_database_principal_assignment" "otel" {
+  count               = var.is_fabric ? 0 : 1
+
   name                = "KustoPrincipalAssignment"
   resource_group_name = data.azurerm_resource_group.demo.name
-  cluster_name        = data.azurerm_kusto_cluster.demo.name
-  database_name       = data.azurerm_kusto_database.otel.name
+  cluster_name        = data.azurerm_kusto_cluster.demo[0].name
+  database_name       = data.azurerm_kusto_database.otel[0].name
 
   tenant_id      = data.azuread_client_config.current.tenant_id
   principal_id   = azuread_application.otel.client_id
@@ -37,7 +39,8 @@ resource "azurerm_kusto_database_principal_assignment" "otel" {
 resource "local_file" "otel_collector_config" {
   filename = "${path.cwd}/${local.opentelemetry_collector_directory_path}/config.yaml"
   content = templatefile("${path.cwd}/${local.opentelemetry_collector_directory_path}/config.tftpl", {
-    adx_cluster_uri = data.azurerm_kusto_cluster.demo.uri,
+    adx_cluster_uri = var.is_fabric ? data.fabric_kql_database.demo[0].properties.query_service_uri : data.azurerm_kusto_cluster.demo[0].uri,
+    adx_database = var.is_fabric ? "${var.base_name}-kql-database" : data.azurerm_kusto_database.otel[0].name,
     application_id  = azuread_service_principal.otel.client_id,
     application_key = azuread_service_principal_password.otel.value,
     tenant_id       = data.azuread_client_config.current.tenant_id
