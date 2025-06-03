@@ -13,8 +13,8 @@ output "online_store_ui_loadbalancer_ip" {
 output "test" {
   value = !var.is_fabric ? null : <<EOT
     run the following kql queries to add permisions to the workloads:
-    .add database ['${var.base_name}-kql-database'] ingestors ('aadapp=${azuread_service_principal.otel.object_id}')
-    .add database ['${var.base_name}-kql-database'] viewers ('aadapp=${azuread_service_principal.jaeger.object_id}')
-    .add database ['${var.base_name}-kql-database'] viewers ('aadapp=${azuread_service_principal.grafana_to_adx.object_id}')
+    .add database ['observabilitydb'] ingestors ('aadapp=${azuread_service_principal.otel.object_id}')
+    .add database ['observabilitydb'] viewers ('aadapp=${azuread_service_principal.jaeger.object_id}')
+    .add database ['observabilitydb'] viewers ('aadapp=${azuread_service_principal.grafana_to_adx.object_id}')
   EOT 
 }

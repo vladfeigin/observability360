@@ -51,7 +51,7 @@ wait for the process to finish, it might take a while.
 
 ##### 2.1.1. Create Tables in Azure Data Explorer
 
-navigate into the created resource group in the portal and choose the created Azure Data Explorer, then run the following query on the database named ``openteldb``:
+navigate into the created resource group in the portal and choose the created Azure Data Explorer, then run the following query on the database named ``observabilitydb``:
 
 ```kusto
 .create-merge table OTELLogs (Timestamp:datetime, ObservedTimestamp:datetime, TraceID:string, SpanID:string, SeverityText:string, SeverityNumber:int, Body:string, ResourceAttributes:dynamic, LogsAttributes:dynamic) 

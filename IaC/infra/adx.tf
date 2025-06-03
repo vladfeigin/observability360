@@ -14,7 +14,7 @@ resource "azurerm_kusto_cluster" "demo" {
 resource "azurerm_kusto_database" "otel" {
   count = var.is_fabric ? 0 : 1
 
-  name                = "openteldb"
+  name                = "observabilitydb"
   resource_group_name = azurerm_resource_group.demo.name
   location            = var.region
   cluster_name        = azurerm_kusto_cluster.demo[0].name

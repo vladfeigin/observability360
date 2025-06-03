@@ -55,5 +55,5 @@ variable "is_fabric" {
 variable "fabric_capacity_sku" {
   description = "The SKU of the Azure Fabric capacity."
   type        = string
-  default     = "F4"
+  default     = "F8"
 }

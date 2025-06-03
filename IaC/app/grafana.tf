@@ -54,7 +54,7 @@ resource "local_file" "adx_datasource" {
   filename = "${path.cwd}/${local.grafana_directory_path}/provisioning/datasources/adx-datasource.yml"
   content = templatefile("${path.cwd}/${local.grafana_directory_path}/provisioning/datasources/adx-datasource.yml.tftpl", {
     adx_fqdn              = var.is_fabric ? data.fabric_kql_database.demo[0].properties.query_service_uri : data.azurerm_kusto_cluster.demo[0].uri
-    adx_database          = var.is_fabric ? "${var.base_name}-kql-database" : data.azurerm_kusto_database.otel[0].name
+    adx_database          = "observabilitydb"
     grafana_client_id     = azuread_application.grafana_to_adx.client_id
     grafana_client_secret = azuread_service_principal_password.grafana_to_adx.value
     tenant_id             = data.azuread_client_config.current.tenant_id

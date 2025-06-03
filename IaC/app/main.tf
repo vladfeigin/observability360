@@ -19,7 +19,7 @@ data "azurerm_kusto_cluster" "demo" {
 data "azurerm_kusto_database" "otel" {
   count = var.is_fabric ? 0 : 1
 
-  name                = "openteldb"
+  name                = "observabilitydb"
   resource_group_name = data.azurerm_resource_group.demo.name
   cluster_name        = data.azurerm_kusto_cluster.demo[0].name
 }
@@ -71,6 +71,6 @@ data "fabric_workspace" "demo" {
 data "fabric_kql_database" "demo" {
   count = var.is_fabric ? 1 : 0
 
-  display_name = "${var.base_name}-kql-database"
+  display_name = "observabilitydb"
   workspace_id = data.fabric_workspace.demo[0].id
 }

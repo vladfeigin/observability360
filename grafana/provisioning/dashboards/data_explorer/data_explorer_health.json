@@ -126,7 +126,7 @@
         "targets": [
           {
             "OpenAI": false,
-            "database": "openteldb",
+            "database": "observabilitydb",
             "datasource": {
               "type": "grafana-azure-data-explorer-datasource",
               "uid": "OBS360DataSource"
@@ -223,7 +223,7 @@
         "targets": [
           {
             "OpenAI": false,
-            "database": "openteldb",
+            "database": "observabilitydb",
             "datasource": {
               "type": "grafana-azure-data-explorer-datasource",
               "uid": "OBS360DataSource"
@@ -361,7 +361,7 @@
         "targets": [
           {
             "OpenAI": false,
-            "database": "openteldb",
+            "database": "observabilitydb",
             "datasource": {
               "type": "grafana-azure-data-explorer-datasource",
               "uid": "OBS360DataSource"
@@ -499,7 +499,7 @@
         "targets": [
           {
             "OpenAI": false,
-            "database": "openteldb",
+            "database": "observabilitydb",
             "datasource": {
               "type": "grafana-azure-data-explorer-datasource",
               "uid": "OBS360DataSource"
