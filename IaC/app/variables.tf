@@ -25,3 +25,9 @@ variable "adx_sku" {
   description = "Value of the sku for the Azure Data Explorer cluster."
   default     = "Dev(No SLA)_Standard_D11_v2"
 }
+
+variable "is_fabric" {
+  description = "Boolean to indicate if the Storage backend are being created as part of Azure Fabric (EventHouse)."
+  type        = bool
+  default     = false
+}

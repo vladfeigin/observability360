@@ -29,6 +29,7 @@ Create a file named ``terraform.tfvars`` with the following content:
 subscription_id = "<your_subscription_id>"
 base_name = "<base_name_prefix_for_the_created_resources>" 
 email = "<your_email_address>"
+is_fabric = "<Whether_to_use_fabric>" // (true/false)
 ```
 
 for base_name use only alphanumeric letters, make sure its no longer than 12 characters.
@@ -50,7 +51,7 @@ wait for the process to finish, it might take a while.
 
 ##### 2.1.1. Create Tables in Azure Data Explorer
 
-navigate into the created resource group in the portal and choose the created Azure Data Explorer, then run the following query on the database named ``openteldb``:
+navigate into the created resource group in the portal and choose the created Azure Data Explorer, then run the following query on the database named ``observabilitydb``:
 
 ```kusto
 .create-merge table OTELLogs (Timestamp:datetime, ObservedTimestamp:datetime, TraceID:string, SpanID:string, SeverityText:string, SeverityNumber:int, Body:string, ResourceAttributes:dynamic, LogsAttributes:dynamic) 

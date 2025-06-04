@@ -78,9 +78,9 @@ resource "kubernetes_deployment" "online_store_ui" {
             name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
             value = "http://${kubernetes_service.otel_collector.metadata[0].name}.${kubernetes_namespace.opentelemtry.metadata[0].name}.svc.cluster.local:4317"
           }
-          
+
           env {
-            name = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
+            name  = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
             value = "true"
           }
 
@@ -104,7 +104,10 @@ resource "kubernetes_deployment" "online_store_ui" {
       }
     }
   }
-  depends_on = [docker_registry_image.online_store_ui]
+  
+  lifecycle {
+    replace_triggered_by = [docker_registry_image.online_store_ui]
+  }
 }
 
 resource "kubernetes_service" "online_store_ui" {

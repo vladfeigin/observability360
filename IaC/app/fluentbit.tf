@@ -57,9 +57,9 @@ resource "kubernetes_config_map" "fluentbit" {
     "fluent-bit.conf" = templatefile("${path.cwd}/${local.fluentbit_directory_path}/fluent-bit.conf.tftpl", {
       otel_collector_service_name   = kubernetes_service.otel_collector.metadata[0].name,
       otel_collector_namespace_name = kubernetes_namespace.opentelemtry.metadata[0].name,
-      aks_name = data.azurerm_kubernetes_cluster.demo.name,
-      region_name = var.region,
-      environment_name = var.base_name
+      aks_name                      = data.azurerm_kubernetes_cluster.demo.name,
+      region_name                   = var.region,
+      environment_name              = var.base_name
     })
     "parsers.conf" = file("${path.cwd}/${local.fluentbit_directory_path}/parsers.conf")
   }

@@ -109,7 +109,7 @@
         "targets": [
           {
             "OpenAI": false,
-            "database": "openteldb",
+            "database": "observabilitydb",
             "expression": {
               "groupBy": {
                 "expressions": [],
@@ -193,7 +193,7 @@
         "targets": [
           {
             "OpenAI": false,
-            "database": "openteldb",
+            "database": "observabilitydb",
             "expression": {
               "groupBy": {
                 "expressions": [],

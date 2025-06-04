@@ -13,24 +13,24 @@ resource "azurerm_eventhub" "diagnostic" {
   message_retention = 1
 }
 
-resource "azurerm_eventhub" "activitylog" {
-  name              = "insights-operational-logs"
+resource "azurerm_eventhub" "operational" {
+  name              = "OperationalData"
   namespace_id      = azurerm_eventhub_namespace.monitor.id
   partition_count   = 2
   message_retention = 1
 }
 
-resource "azurerm_eventhub_consumer_group" "diagnostic_adx" {
-  name                = "adxpipeline"
+resource "azurerm_eventhub_consumer_group" "diagnostic" {
+  name                = "KustoConsumerGroup"
   namespace_name      = azurerm_eventhub_namespace.monitor.name
   eventhub_name       = azurerm_eventhub.diagnostic.name
   resource_group_name = azurerm_resource_group.demo.name
 }
 
-resource "azurerm_eventhub_consumer_group" "activitylog_adx" {
-  name                = "adxpipeline"
+resource "azurerm_eventhub_consumer_group" "operational" {
+  name                = "KustoConsumerGroup"
   namespace_name      = azurerm_eventhub_namespace.monitor.name
-  eventhub_name       = azurerm_eventhub.activitylog.name
+  eventhub_name       = azurerm_eventhub.operational.name
   resource_group_name = azurerm_resource_group.demo.name
 }
 
@@ -48,7 +48,7 @@ resource "azurerm_monitor_diagnostic_setting" "subscription_activitylogs" {
   name               = "${var.base_name}-SubscriptionActivityLogs"
   target_resource_id = "/subscriptions/${var.subscription_id}"
 
-  eventhub_name                  = azurerm_eventhub.activitylog.name
+  eventhub_name                  = azurerm_eventhub.operational.name
   eventhub_authorization_rule_id = azurerm_eventhub_namespace_authorization_rule.monitor.id
 
 

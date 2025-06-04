@@ -25,11 +25,11 @@ exporters:
   debug:
     verbosity: detailed
   azuredataexplorer:
-    cluster_uri: "${adx_cluster_uri}"
+    cluster_uri: "${kusto_cluster_uri}"
     application_id: "${application_id}"
     application_key: "${application_key}"
     tenant_id: "${tenant_id}"
-    db_name: "openteldb"
+    db_name: "${kusto_database}"
     metrics_table_name: "OTELMetrics"
     logs_table_name: "OTELLogs"
     traces_table_name: "OTELTraces"

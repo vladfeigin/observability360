@@ -80,7 +80,7 @@ resource "kubernetes_deployment" "online_store_order" {
           }
 
           env {
-            name = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
+            name  = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
             value = "true"
           }
 
@@ -104,7 +104,10 @@ resource "kubernetes_deployment" "online_store_order" {
       }
     }
   }
-  depends_on = [docker_registry_image.online_store_order]
+  
+  lifecycle {
+    replace_triggered_by = [docker_registry_image.online_store_order]
+  }
 }
 
 resource "kubernetes_service" "online_store_order" {
