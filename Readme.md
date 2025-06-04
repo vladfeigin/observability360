@@ -29,7 +29,7 @@ Create a file named ``terraform.tfvars`` with the following content:
 subscription_id = "<your_subscription_id>"
 base_name = "<base_name_prefix_for_the_created_resources>" 
 email = "<your_email_address>"
-is_fabric = "<Whether_to_use_fabric>" // (true/false)
+is_fabric = <Whether_to_use_fabric> // (true/false)
 ```
 
 for base_name use only alphanumeric letters, make sure its no longer than 12 characters.
@@ -49,9 +49,9 @@ terraform apply -auto-approve -var-file="../terraform.tfvars"
 
 wait for the process to finish, it might take a while.
 
-##### 2.1.1. Create Tables in Azure Data Explorer
-
-navigate into the created resource group in the portal and choose the created Azure Data Explorer, then run the following query on the database named ``observabilitydb``:
+##### 2.1.1. FOR FABRIC ONLY: Create Tables in Fabric EventHouse
+Navigate into Fabric website application, and enter into the recently created observability360 workspace,
+navigate into the created kql database named ``observabilitydb`` and open a new query set with the following queries and run it:
 
 ```kusto
 .create-merge table OTELLogs (Timestamp:datetime, ObservedTimestamp:datetime, TraceID:string, SpanID:string, SeverityText:string, SeverityNumber:int, Body:string, ResourceAttributes:dynamic, LogsAttributes:dynamic) 
@@ -140,6 +140,8 @@ navigate into the created resource group in the portal and choose the created Az
 
 ```
 
+In addition, there is need to config the eventstreams: ``diagnostics-eventstream``, ``operational-eventstream`` manually, please refer to the attahced image within the root folder called ``assets`` to a file called eventstream.png and config it as follows. 
+
 #### 2.2. Deploy the application resources
 
 make sure that docker runtime is running (Docker-Desktop for windows/mac and docker-ce for ubuntu)
@@ -159,6 +161,8 @@ grafana_loadbalancer_ip = "<grafana_public_ip>"
 jaeger_loadbalancer_ip = "<jaeger_public_ip>"
 online_store_ui_loadbalancer_ip = "<online_store_ui_public_ip>"
 ```
+
+if fabric was created, there will be addional output for the permissions commands needed for the service principal within the kql database, run it in the same way like the tables creation
 
 ### 3. Validate functionallity
 
